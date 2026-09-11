@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Socio Attendance System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <main class="dashboard-container">
+        <header class="page-header">
+            <div>
+                <h1>Dashboard</h1>
+                <p>Welcome, {{ current_user.full_name }}.</p>
+            </div>
+            <a href="{{ url_for('auth.logout') }}">Log out</a>
+        </header>
+
+        <section class="dashboard-card">
+            <h2>{{ current_user.role.replace('_', ' ').title() }}</h2>
+            {% if current_user.socio %}
+                <p>Socio: {{ current_user.socio.name }}</p>
+            {% else %}
+                <p>System-wide access</p>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>
