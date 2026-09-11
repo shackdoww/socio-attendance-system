@@ -54,6 +54,8 @@ def create_app():
         default_socios = [
             "NDMU Rondalla Ensemble",
             "NDMU Symphonic Band",
+            "NDMU Tambuli Singers",
+            "NDMU Kariktan Dancers",
         ]
 
         for socio_name in default_socios:
