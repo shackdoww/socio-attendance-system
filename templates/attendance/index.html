@@ -27,7 +27,7 @@
 <div class="sidebar-bottom"><a class="nav-item" href="{{ url_for('auth.logout') }}"><span class="nav-icon">↪</span>Log out</a></div>
 </aside>
 <main class="dashboard-main">
-<header class="topbar"><div><p class="eyebrow">ATTENDANCE</p><h1>Daily Attendance</h1><p class="welcome-text">Log your attendance in real time. Submissions are reviewed by your Socio Moderator.</p></div><div class="profile-chip"><div class="avatar">{{ current_user.full_name[:1].upper() }}</div><div><strong>{{ current_user.full_name }}</strong><span>{{ current_user.role.replace('_', ' ').title() }}</span></div></div></header>
+<header class="topbar"><div><p class="eyebrow">ATTENDANCE</p><h1>Daily Attendance</h1><p class="welcome-text">Log attendance in real time. Submissions are reviewed by your Socio Moderator.</p></div><div class="profile-chip"><div class="avatar">{{ current_user.full_name[:1].upper() }}</div><div><strong>{{ current_user.full_name }}</strong><span>{{ current_user.role.replace('_', ' ').title() }}</span></div></div></header>
 {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
 
 {% if current_user.role == 'admin' %}
@@ -40,7 +40,7 @@
 <section class="panel personal-attendance"><div class="attendance-date"><p class="eyebrow">TODAY'S ATTENDANCE</p><h2>{{ selected_date.strftime('%A, %B %d, %Y') }}</h2><span>{{ current_user.socio.name }}</span></div>
 {% if session.no_attendance %}
 <div class="notice-card"><strong>No attendance today</strong><span>{% if session.no_attendance_reason %}{{ session.no_attendance_reason }}{% else %}This date was excluded by an administrator.{% endif %}</span></div>
-{% elif selected_date != session.session_date or selected_date != __import__('datetime').date.today() %}
+{% elif not is_today %}
 <div class="notice-card"><strong>Attendance is logged for today</strong><span>Use today's date to record your live Time In and Time Out.</span></div>
 {% else %}
 <div class="attendance-clock"><div><span>TIME IN</span><strong>{{ record.time_in.strftime('%I:%M %p') if record and record.time_in else '—' }}</strong></div><div class="clock-arrow">→</div><div><span>TIME OUT</span><strong>{{ record.time_out.strftime('%I:%M %p') if record and record.time_out else '—' }}</strong></div></div>
