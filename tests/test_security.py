@@ -1,18 +1,17 @@
 import re
 import uuid
 
-import pytest
-
 import os
 
 os.environ["SECRET_KEY"] = "test-secret-key"
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 os.environ["FLASK_ENV"] = "testing"
 os.environ["RATELIMIT_STORAGE_URI"] = "memory://"
+os.environ["SESSION_PROTECTION"] = "none"
 
 from app import create_app
 from extensions import db
-from models import Socio, User
+from models import User
 
 
 def create_test_app():
@@ -41,6 +40,14 @@ def authenticate(client, user):
     with client.session_transaction() as session:
         session["_user_id"] = str(user.id)
         session["_fresh"] = True
+
+
+def csrf_token(client, path):
+    page = client.get(path)
+    assert page.status_code == 200
+    match = re.search(r'name="csrf_token" value="([^"]+)"', page.get_data(as_text=True))
+    assert match
+    return match.group(1)
 
 
 def test_login_page_contains_csrf_token():
@@ -133,6 +140,7 @@ def test_security_headers_are_present():
 
 def test_member_cannot_post_bulletin():
     app = create_test_app()
+    app.config["WTF_CSRF_ENABLED"] = False
     with app.app_context():
         user = create_user()
         with app.test_client() as client:
@@ -150,12 +158,7 @@ def test_admin_can_post_bulletin():
         user = create_user(role="admin", socio_id=None)
         with app.test_client() as client:
             authenticate(client, user)
-            page = client.get("/admin/bulletin")
-            assert page.status_code == 200
-            token = re.search(
-                r'name="csrf_token" value="([^"]+)"',
-                page.get_data(as_text=True),
-            ).group(1)
+            token = csrf_token(client, "/admin/bulletin")
             response = client.post(
                 "/admin/bulletin/create",
                 data={
