@@ -1,7 +1,8 @@
+import os
 import re
 import uuid
 
-import os
+import pytest
 
 os.environ["SECRET_KEY"] = "test-secret-key"
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
