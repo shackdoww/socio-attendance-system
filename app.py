@@ -3,11 +3,10 @@ from flask_login import LoginManager, current_user, login_required
 from dotenv import load_dotenv
 import os
 
-from flask_sqlalchemy import SQLAlchemy
+from extensions import db
 
 load_dotenv()
 
-db = SQLAlchemy()
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
 
@@ -16,9 +15,7 @@ def create_app():
     app = Flask(__name__)
 
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret-key-change-me")
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
-        "DATABASE_URL", "sqlite:///socio_attendance.db"
-    )
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///socio_attendance.db")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     db.init_app(app)
