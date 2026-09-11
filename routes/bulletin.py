@@ -11,6 +11,15 @@ from routes.admin import admin_required
 bulletin_bp = Blueprint("bulletin", __name__)
 
 
+def parse_future_event(value):
+    if not value:
+        raise ValueError("Event date and time are required for future events.")
+    event_at = datetime.fromisoformat(value)
+    if event_at <= datetime.now():
+        raise ValueError("Event date and time must be in the future.")
+    return event_at
+
+
 @bulletin_bp.route("/bulletin")
 @login_required
 def index():
@@ -47,13 +56,10 @@ def create():
 
     event_at = None
     if post_type == "event":
-        if not event_at_text:
-            flash("Event date and time are required for future events.", "error")
-            return redirect(url_for("bulletin.manage"))
         try:
-            event_at = datetime.fromisoformat(event_at_text)
-        except ValueError:
-            flash("Invalid event date and time.", "error")
+            event_at = parse_future_event(event_at_text)
+        except ValueError as exc:
+            flash(str(exc), "error")
             return redirect(url_for("bulletin.manage"))
 
     post = BulletinPost(
@@ -90,13 +96,10 @@ def edit(post_id):
 
     event_at = None
     if post_type == "event":
-        if not event_at_text:
-            flash("Event date and time are required for future events.", "error")
-            return redirect(url_for("bulletin.manage"))
         try:
-            event_at = datetime.fromisoformat(event_at_text)
-        except ValueError:
-            flash("Invalid event date and time.", "error")
+            event_at = parse_future_event(event_at_text)
+        except ValueError as exc:
+            flash(str(exc), "error")
             return redirect(url_for("bulletin.manage"))
 
     post.title = title
