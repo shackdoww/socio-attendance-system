@@ -30,6 +30,7 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     socio = db.relationship("Socio", back_populates="users")
     attendance_records = db.relationship("Attendance", back_populates="user", cascade="all, delete-orphan", lazy=True)
+    bulletin_posts = db.relationship("BulletinPost", back_populates="author", lazy=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -75,3 +76,17 @@ class Transaction(db.Model):
     transaction_date = db.Column(db.Date, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     socio = db.relationship("Socio", back_populates="transactions")
+
+
+class BulletinPost(db.Model):
+    __tablename__ = "bulletin_posts"
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(150), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    post_type = db.Column(db.String(20), nullable=False, default="announcement")
+    event_at = db.Column(db.DateTime)
+    location = db.Column(db.String(200))
+    published_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    author_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    author = db.relationship("User", back_populates="bulletin_posts")
