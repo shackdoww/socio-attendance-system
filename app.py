@@ -71,17 +71,34 @@ def create_app():
         import models
         db.create_all()
 
-        # Keep existing local SQLite databases compatible when new attendance fields are added.
         if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite"):
             inspector = inspect(db.engine)
-            columns = {column["name"] for column in inspector.get_columns("attendance_sessions")}
-            if "no_attendance" not in columns:
+            session_columns = {column["name"] for column in inspector.get_columns("attendance_sessions")}
+            log_columns = {column["name"] for column in inspector.get_columns("attendance_logs")}
+
+            if "no_attendance" not in session_columns:
                 db.session.execute(text(
                     "ALTER TABLE attendance_sessions ADD COLUMN no_attendance BOOLEAN NOT NULL DEFAULT 0"
                 ))
-            if "no_attendance_reason" not in columns:
+            if "no_attendance_reason" not in session_columns:
                 db.session.execute(text(
                     "ALTER TABLE attendance_sessions ADD COLUMN no_attendance_reason VARCHAR(255)"
+                ))
+            if "approval_status" not in log_columns:
+                db.session.execute(text(
+                    "ALTER TABLE attendance_logs ADD COLUMN approval_status VARCHAR(20) NOT NULL DEFAULT 'not_required'"
+                ))
+            if "approved_by" not in log_columns:
+                db.session.execute(text(
+                    "ALTER TABLE attendance_logs ADD COLUMN approved_by INTEGER"
+                ))
+            if "approved_at" not in log_columns:
+                db.session.execute(text(
+                    "ALTER TABLE attendance_logs ADD COLUMN approved_at DATETIME"
+                ))
+            if "rejection_reason" not in log_columns:
+                db.session.execute(text(
+                    "ALTER TABLE attendance_logs ADD COLUMN rejection_reason VARCHAR(255)"
                 ))
             db.session.commit()
 
