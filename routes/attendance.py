@@ -12,7 +12,7 @@ attendance_bp = Blueprint("attendance", __name__)
 MANAGER_ROLES = {"admin", "socio_moderator"}
 NON_ATTENDANCE_ROLES = {"admin", "socio_moderator"}
 ATTENDANCE_STATUSES = {"present", "late", "excused", "absent"}
-SELF_STATUSES = {"present", "late", "excused"}
+SELF_STATUSES = {"present"}
 
 
 def attendance_manager_required(view):
@@ -54,7 +54,7 @@ def attendance_records_query(session_id):
     return db.select(AttendanceLog).where(
         AttendanceLog.session_id == session_id,
         User.role.notin_(NON_ATTENDANCE_ROLES),
-    ).join(User).order_by(User.full_name)
+    ).join(User, AttendanceLog.user_id == User.id).order_by(User.full_name)
 
 
 def ensure_session(session_date, socio_id, created_by):
@@ -184,15 +184,12 @@ def self_submit(session_id):
         flash("Your attendance has already been approved and cannot be edited.", "error")
         return redirect(url_for("attendance.index"))
 
-    status = request.form.get("status", "present")
-    if status not in SELF_STATUSES:
-        status = "present"
     notes = request.form.get("notes", "").strip()
-    if status in {"present", "late"} and not record.time_in:
-        flash("Please use Time In before submitting this attendance status.", "error")
+    if not record.time_in:
+        flash("Please use Time In before submitting this attendance.", "error")
         return redirect(url_for("attendance.index"))
 
-    record.status = status
+    record.status = "present"
     record.notes = notes or None
     record.duration_minutes = calculate_duration(session.session_date, record.time_in, record.time_out)
     record.approval_status = "pending"
@@ -370,7 +367,9 @@ def set_no_attendance(session_id):
 @attendance_bp.route("/attendance/history")
 @login_required
 def history():
-    query = db.select(AttendanceLog).join(AttendanceSession).join(User).where(
+    query = db.select(AttendanceLog).join(AttendanceSession).join(
+        User, AttendanceLog.user_id == User.id
+    ).where(
         AttendanceSession.no_attendance.is_(False),
         User.role.notin_(NON_ATTENDANCE_ROLES),
     ).order_by(AttendanceSession.session_date.desc(), User.full_name)
@@ -385,7 +384,9 @@ def history():
 @attendance_bp.route("/attendance/reports")
 @login_required
 def reports():
-    query = db.select(AttendanceLog).join(AttendanceSession).join(User).where(
+    query = db.select(AttendanceLog).join(AttendanceSession).join(
+        User, AttendanceLog.user_id == User.id
+    ).where(
         AttendanceSession.no_attendance.is_(False),
         User.role.notin_(NON_ATTENDANCE_ROLES),
         AttendanceLog.approval_status.in_(["approved", "not_required"]),
