@@ -1,3 +1,71 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>{{ socio.name }} | Socio Management</title><link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/ndmu-theme.css') }}"></head>
-<body class="admin-page"><div class="admin-layout"><aside class="sidebar"><div class="brand">Socio<span>Attend</span></div><nav><a href="{{ url_for('dashboard') }}">Dashboard</a><a href="{{ url_for('admin.users') }}">Users</a><a class="active" href="{{ url_for('admin.socios') }}">Socios</a><a href="{{ url_for('attendance.index') }}">Attendance</a><a href="#">Activities</a><a href="#">Finances</a><a href="{{ url_for('attendance.reports') }}">Reports</a></nav><div class="sidebar-bottom"><div class="admin-mini">{{ current_user.full_name }}<small>Administrator</small></div><a href="{{ url_for('auth.logout') }}">Log out</a></div></aside><main class="admin-main"><header class="content-header"><div><p class="eyebrow">Socio Management</p><h1>{{ socio.name }}</h1><p class="muted">{{ socio.description or 'No description provided.' }}</p></div><a class="secondary-button" href="{{ url_for('admin.socios') }}">← All Socios</a></header>{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="flash-stack">{% for category,message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}<section class="panel"><div class="panel-header"><div><h2>Socio Information</h2><p>Update the group's basic information.</p></div></div><form class="user-form" method="post" action="{{ url_for('admin.update_socio', socio_id=socio.id) }}"><div class="form-grid"><label>Socio group name<input name="name" value="{{ socio.name }}" required maxlength="120"></label><label>Description<input name="description" value="{{ socio.description or '' }}" maxlength="500"></label></div><button class="primary-button" type="submit">Save Changes</button></form></section><section class="panel"><div class="panel-header"><div><h2>Leadership Assignments</h2><p>Each socio can have one moderator and one person for each officer position.</p></div></div><form class="user-form" method="post" action="{{ url_for('admin.assign_socio_roles', socio_id=socio.id) }}"><div class="form-grid"><label>Socio Moderator<select name="socio_moderator_id"><option value="">Not assigned</option>{% for user in role_users.socio_moderator %}<option value="{{ user.id }}" {% if assignments.socio_moderator and assignments.socio_moderator.id == user.id %}selected{% endif %}>{{ user.full_name }} (@{{ user.username }})</option>{% endfor %}</select></label>{% for role,label in officer_roles %}<label>{{ label }}<select name="{{ role }}_id"><option value="">Not assigned</option>{% for user in role_users[role] %}<option value="{{ user.id }}" {% if assignments[role] and assignments[role].id == user.id %}selected{% endif %}>{{ user.full_name }} (@{{ user.username }})</option>{% endfor %}</select></label>{% endfor %}</div><button class="primary-button" type="submit">Save Leadership</button></form></section><section class="panel"><div class="panel-header"><div><h2>Members</h2><p>{{ members|length }} account{% if members|length != 1 %}s{% endif %} assigned to this socio.</p></div></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th></tr></thead><tbody>{% for user in members %}<tr><td><strong>{{ user.full_name }}</strong><small>{{ user.email }}</small></td><td>@{{ user.username }}</td><td><span class="role-badge">{{ user.role.replace('_',' ').title() }}</span></td><td><span class="status {{ 'active-status' if user.is_active else 'inactive-status' }}">{{ 'Active' if user.is_active else 'Inactive' }}</span></td></tr>{% else %}<tr><td colspan="4" class="empty">No members are assigned to this socio yet.</td></tr>{% endfor %}</tbody></table></div></section></main></div></body></html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ socio.name }} | Socio Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ndmu-theme.css') }}">
+</head>
+<body class="dashboard-page">
+<div class="dashboard-layout">
+    <aside class="sidebar">
+        <div class="brand"><div class="brand-mark">SA</div><div><strong>Socio Attendance</strong><span>Management System</span></div></div>
+        <nav class="sidebar-nav">
+            <p class="nav-label">MAIN</p>
+            <a class="nav-item" href="{{ url_for('dashboard') }}"><span class="nav-icon">▦</span>Dashboard</a>
+            <a class="nav-item" href="{{ url_for('bulletin.index') }}"><span class="nav-icon">▤</span>Bulletin Board</a>
+            <a class="nav-item disabled" href="#"><span class="nav-icon">♙</span>Members<span class="coming-soon">Soon</span></a>
+            <a class="nav-item" href="{{ url_for('attendance.index') }}"><span class="nav-icon">✓</span>Attendance</a>
+            <a class="nav-item disabled" href="#"><span class="nav-icon">▣</span>Activities<span class="coming-soon">Soon</span></a>
+            <p class="nav-label">MANAGEMENT</p>
+            <a class="nav-item active" href="{{ url_for('admin.socios') }}"><span class="nav-icon">◈</span>Socios</a>
+            <a class="nav-item disabled" href="#"><span class="nav-icon">₱</span>Finances<span class="coming-soon">Soon</span></a>
+            <a class="nav-item" href="{{ url_for('attendance.reports') }}"><span class="nav-icon">▤</span>Reports</a>
+            <p class="nav-label">ADMINISTRATION</p>
+            <a class="nav-item" href="{{ url_for('admin.users') }}"><span class="nav-icon">⚙</span>User Management</a>
+            <a class="nav-item" href="{{ url_for('bulletin.manage') }}"><span class="nav-icon">✎</span>Manage Bulletin</a>
+        </nav>
+        <div class="sidebar-bottom"><a class="nav-item" href="{{ url_for('auth.logout') }}"><span class="nav-icon">↪</span>Log out</a></div>
+    </aside>
+
+    <main class="dashboard-main socio-detail-main">
+        <header class="topbar">
+            <div><p class="eyebrow">SOCIO MANAGEMENT</p><h1>{{ socio.name }}</h1><p class="welcome-text">{{ socio.description or 'Manage this socio group and its leadership.' }}</p></div>
+            <a class="secondary-button" href="{{ url_for('admin.socios') }}">← All Socios</a>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}<div class="flash-stack">{% for category, message in messages %}<div class="flash {{ category }}">{% if category == 'success' %}✓ {% endif %}{{ message }}</div>{% endfor %}</div>{% endif %}
+        {% endwith %}
+
+        <section class="panel socio-detail-panel">
+            <div class="panel-header"><div><h2>Socio Information</h2><p>Update the group's basic information.</p></div></div>
+            <form class="user-form" method="post" action="{{ url_for('admin.update_socio', socio_id=socio.id) }}">
+                <div class="form-grid"><label>Socio group name<input name="name" value="{{ socio.name }}" required maxlength="120"></label><label>Description<input name="description" value="{{ socio.description or '' }}" maxlength="500"></label></div>
+                <button class="primary-button" type="submit">Save Changes</button>
+            </form>
+        </section>
+
+        <section class="panel socio-detail-panel">
+            <div class="panel-header"><div><h2>Leadership Assignments</h2><p>Assign one moderator and one person to each officer position.</p></div></div>
+            <form class="user-form" method="post" action="{{ url_for('admin.assign_socio_roles', socio_id=socio.id) }}">
+                <div class="form-grid">
+                    <label>Socio Moderator<select name="socio_moderator_id"><option value="">Not assigned</option>{% for user in role_users.socio_moderator %}<option value="{{ user.id }}" {% if assignments.socio_moderator and assignments.socio_moderator.id == user.id %}selected{% endif %}>{{ user.full_name }} (@{{ user.username }})</option>{% endfor %}</select></label>
+                    {% for role,label in officer_roles %}<label>{{ label }}<select name="{{ role }}_id"><option value="">Not assigned</option>{% for user in role_users[role] %}<option value="{{ user.id }}" {% if assignments[role] and assignments[role].id == user.id %}selected{% endif %}>{{ user.full_name }} (@{{ user.username }})</option>{% endfor %}</select></label>{% endfor %}
+                </div>
+                <button class="primary-button" type="submit">Save Leadership</button>
+            </form>
+        </section>
+
+        <section class="panel socio-detail-panel">
+            <div class="panel-header"><div><h2>Members</h2><p>{{ members|length }} account{% if members|length != 1 %}s{% endif %} assigned to this socio.</p></div></div>
+            <div class="table-wrap"><table><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th></tr></thead><tbody>
+                {% for user in members %}<tr><td><strong>{{ user.full_name }}</strong><small>{{ user.email }}</small></td><td>@{{ user.username }}</td><td><span class="role-badge">{{ user.role.replace('_',' ').title() }}</span></td><td><span class="status {{ 'active-status' if user.is_active else 'inactive-status' }}">{{ 'Active' if user.is_active else 'Inactive' }}</span></td></tr>
+                {% else %}<tr><td colspan="4" class="empty">No members are assigned to this socio yet.</td></tr>{% endfor %}
+            </tbody></table></div>
+        </section>
+    </main>
+</div>
+</body>
+</html>
