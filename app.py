@@ -110,7 +110,7 @@ def create_app():
                 '<form method="post" action="/logout" style="margin:0">'
                 '<button type="submit" class="nav-item" '
                 'style="width:100%;border:0;background:transparent;text-align:left;'
-                'font:inherit;cursor:pointer;">\3</button></form>'
+                'font:inherit;cursor:pointer;">\g<3></button></form>'
             )
             html = re.sub(logout_pattern, logout_replacement, html, flags=re.IGNORECASE | re.DOTALL)
 
