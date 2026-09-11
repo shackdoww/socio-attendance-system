@@ -1,9 +1,14 @@
-import os
 import re
+import uuid
+
+import pytest
+
+import os
 
 os.environ["SECRET_KEY"] = "test-secret-key"
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 os.environ["FLASK_ENV"] = "testing"
+os.environ["RATELIMIT_STORAGE_URI"] = "memory://"
 
 from app import create_app
 from extensions import db
@@ -17,9 +22,10 @@ def create_test_app():
 
 
 def create_user(role="member", active=True, socio_id=None):
+    suffix = uuid.uuid4().hex
     user = User(
-        username=f"test_{role}_{id(object())}",
-        email=f"test_{role}_{id(object())}@example.com",
+        username=f"test_{role}_{suffix}",
+        email=f"test_{role}_{suffix}@example.com",
         full_name="Test User",
         role=role,
         socio_id=socio_id,
@@ -29,6 +35,12 @@ def create_user(role="member", active=True, socio_id=None):
     db.session.add(user)
     db.session.commit()
     return user
+
+
+def authenticate(client, user):
+    with client.session_transaction() as session:
+        session["_user_id"] = str(user.id)
+        session["_fresh"] = True
 
 
 def test_login_page_contains_csrf_token():
@@ -51,15 +63,39 @@ def test_login_rejects_missing_csrf_token():
             assert response.status_code == 400
 
 
+def test_login_is_rate_limited():
+    app = create_test_app()
+    app.config["WTF_CSRF_ENABLED"] = False
+    with app.app_context():
+        user = create_user()
+        with app.test_client() as client:
+            responses = [
+                client.post(
+                    "/login",
+                    data={"username": user.username, "password": "wrong"},
+                )
+                for _ in range(6)
+            ]
+            assert responses[-1].status_code == 429
+
+
 def test_dashboard_forbidden_for_member():
     app = create_test_app()
     with app.app_context():
         user = create_user()
         with app.test_client() as client:
-            with client.session_transaction() as session:
-                session["_user_id"] = str(user.id)
-                session["_fresh"] = True
+            authenticate(client, user)
             response = client.get("/dashboard")
+            assert response.status_code == 403
+
+
+def test_admin_area_forbidden_for_member():
+    app = create_test_app()
+    with app.app_context():
+        user = create_user()
+        with app.test_client() as client:
+            authenticate(client, user)
+            response = client.get("/admin/users")
             assert response.status_code == 403
 
 
@@ -68,9 +104,7 @@ def test_inactive_user_is_not_loaded():
     with app.app_context():
         user = create_user(active=False)
         with app.test_client() as client:
-            with client.session_transaction() as session:
-                session["_user_id"] = str(user.id)
-                session["_fresh"] = True
+            authenticate(client, user)
             response = client.get("/attendance")
             assert response.status_code == 302
             assert "/login" in response.headers["Location"]
@@ -81,9 +115,64 @@ def test_logout_requires_post_and_csrf():
     with app.app_context():
         user = create_user()
         with app.test_client() as client:
-            with client.session_transaction() as session:
-                session["_user_id"] = str(user.id)
-                session["_fresh"] = True
+            authenticate(client, user)
             assert client.get("/logout").status_code == 405
             response = client.post("/logout")
             assert response.status_code == 400
+
+
+def test_security_headers_are_present():
+    app = create_test_app()
+    with app.test_client() as client:
+        response = client.get("/login")
+        assert response.headers["X-Content-Type-Options"] == "nosniff"
+        assert response.headers["X-Frame-Options"] == "SAMEORIGIN"
+        assert "Content-Security-Policy" in response.headers
+        assert "Permissions-Policy" in response.headers
+
+
+def test_member_cannot_post_bulletin():
+    app = create_test_app()
+    with app.app_context():
+        user = create_user()
+        with app.test_client() as client:
+            authenticate(client, user)
+            response = client.post("/admin/bulletin/create", data={
+                "title": "Unauthorized",
+                "content": "Should not be published",
+            })
+            assert response.status_code == 403
+
+
+def test_admin_can_post_bulletin():
+    app = create_test_app()
+    with app.app_context():
+        user = create_user(role="admin", socio_id=None)
+        with app.test_client() as client:
+            authenticate(client, user)
+            page = client.get("/admin/bulletin")
+            assert page.status_code == 200
+            token = re.search(
+                r'name="csrf_token" value="([^"]+)"',
+                page.get_data(as_text=True),
+            ).group(1)
+            response = client.post(
+                "/admin/bulletin/create",
+                data={
+                    "csrf_token": token,
+                    "title": "Test announcement",
+                    "content": "Test content",
+                    "post_type": "announcement",
+                },
+            )
+            assert response.status_code == 302
+
+
+@pytest.mark.parametrize("path", ["/admin/users", "/admin/socios"])
+def test_admin_pages_require_admin(path):
+    app = create_test_app()
+    with app.app_context():
+        user = create_user(role="member")
+        with app.test_client() as client:
+            authenticate(client, user)
+            assert client.get(path).status_code == 403
