@@ -1,4 +1,3 @@
-from calendar import monthrange
 from datetime import date, datetime, timedelta
 from functools import wraps
 
@@ -51,14 +50,6 @@ def ensure_session(session_date, socio_id, created_by):
     return session
 
 
-def get_or_create_selected_session(selected_date):
-    if current_user.role == "admin":
-        return None
-    if not current_user.socio_id:
-        return None
-    return ensure_session(selected_date, current_user.socio_id, current_user.id)
-
-
 @attendance_bp.route("/attendance")
 @login_required
 def index():
@@ -68,52 +59,29 @@ def index():
     except ValueError:
         selected_date = date.today()
 
-    if current_user.role != "admin":
-        session = get_or_create_selected_session(selected_date)
-        records = []
-        if session and not session.no_attendance:
-            records = db.session.execute(db.select(AttendanceLog).where(
-                AttendanceLog.session_id == session.id
-            ).join(User).order_by(User.full_name)).scalars().all()
-        return render_template("attendance/index.html", session=session, records=records, selected_date=selected_date)
+    if current_user.role == "admin":
+        socios = db.session.execute(db.select(Socio).order_by(Socio.name)).scalars().all()
+        selected_sessions = [ensure_session(selected_date, socio.id, current_user.id) for socio in socios]
+        sessions = db.session.execute(db.select(AttendanceSession).order_by(
+            AttendanceSession.session_date.desc(), AttendanceSession.socio_id
+        ).limit(100)).scalars().all()
+        return render_template(
+            "attendance/index.html",
+            session=selected_sessions[0] if selected_sessions else None,
+            selected_sessions=selected_sessions,
+            sessions=sessions,
+            socios=socios,
+            selected_date=selected_date,
+        )
 
-    sessions = db.session.execute(db.select(AttendanceSession).order_by(
-        AttendanceSession.session_date.desc(), AttendanceSession.socio_id
-    ).limit(100)).scalars().all()
-    socios = db.session.execute(db.select(Socio).order_by(Socio.name)).scalars().all()
-    selected_sessions = db.session.execute(db.select(AttendanceSession).where(
-        AttendanceSession.session_date == selected_date
-    ).order_by(AttendanceSession.socio_id)).scalars().all()
-    return render_template(
-        "attendance/index.html",
-        session=selected_sessions[0] if selected_sessions else None,
-        selected_sessions=selected_sessions,
-        sessions=sessions,
-        socios=socios,
-        selected_date=selected_date,
-    )
+    if not current_user.socio_id:
+        return render_template("attendance/index.html", session=None, records=[], selected_date=selected_date)
 
-
-@attendance_bp.route("/attendance/admin/date", methods=["POST"])
-@attendance_manager_required
-def admin_date():
-    if current_user.role != "admin":
-        return "Forbidden", 403
-    try:
-        selected_date = date.fromisoformat(request.form.get("session_date", ""))
-    except ValueError:
-        flash("Invalid attendance date.", "error")
-        return redirect(url_for("attendance.index"))
-
-    socio_id = request.form.get("socio_id", "").strip()
-    try:
-        socio_id = int(socio_id)
-    except ValueError:
-        flash("Please select a socio.", "error")
-        return redirect(url_for("attendance.index", date=selected_date.isoformat()))
-
-    session = ensure_session(selected_date, socio_id, current_user.id)
-    return redirect(url_for("attendance.manage", session_id=session.id))
+    session = ensure_session(selected_date, current_user.socio_id, current_user.id)
+    records = [] if session.no_attendance else db.session.execute(db.select(AttendanceLog).where(
+        AttendanceLog.session_id == session.id
+    ).join(User).order_by(User.full_name)).scalars().all()
+    return render_template("attendance/index.html", session=session, records=records, selected_date=selected_date)
 
 
 @attendance_bp.route("/attendance/<int:session_id>")
@@ -122,11 +90,9 @@ def manage(session_id):
     session = db.get_or_404(AttendanceSession, session_id)
     if current_user.role != "admin" and current_user.socio_id != session.socio_id:
         return "Forbidden", 403
-    records = []
-    if not session.no_attendance:
-        records = db.session.execute(db.select(AttendanceLog).where(
-            AttendanceLog.session_id == session.id
-        ).join(User).order_by(User.full_name)).scalars().all()
+    records = [] if session.no_attendance else db.session.execute(db.select(AttendanceLog).where(
+        AttendanceLog.session_id == session.id
+    ).join(User).order_by(User.full_name)).scalars().all()
     return render_template("attendance/manage.html", session=session, records=records)
 
 
@@ -137,6 +103,10 @@ def record(session_id, record_id):
     record = db.get_or_404(AttendanceLog, record_id)
     if record.session_id != session.id or (current_user.role != "admin" and current_user.socio_id != session.socio_id):
         return "Forbidden", 403
+    if session.no_attendance:
+        flash("Attendance is disabled for this date.", "error")
+        return redirect(url_for("attendance.manage", session_id=session.id))
+
     status = request.form.get("status", "absent")
     if status not in {"present", "practicing", "late", "excused", "absent"}:
         status = "absent"
