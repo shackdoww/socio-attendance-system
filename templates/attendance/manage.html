@@ -1,10 +1,73 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Manage Attendance | Socio Attendance System</title><link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/ndmu-theme.css') }}"></head>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendance Review | Notre Dame of Marbel University</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ndmu-theme.css') }}">
+</head>
 <body class="dashboard-page">
-<div class="dashboard-layout"><aside class="sidebar"><div class="brand"><div class="brand-mark">SA</div><div><strong>Socio Attendance</strong><span>Management System</span></div></div><nav class="sidebar-nav"><p class="nav-label">MAIN</p><a class="nav-item" href="{{ url_for('dashboard') }}"><span class="nav-icon">▦</span>Dashboard</a><a class="nav-item" href="{{ url_for('bulletin.index') }}"><span class="nav-icon">▤</span>Bulletin Board</a><a class="nav-item disabled" href="#"><span class="nav-icon">♙</span>Members<span class="coming-soon">Soon</span></a><a class="nav-item active" href="{{ url_for('attendance.index') }}"><span class="nav-icon">✓</span>Attendance</a><a class="nav-item disabled" href="#"><span class="nav-icon">▣</span>Activities<span class="coming-soon">Soon</span></a><p class="nav-label">MANAGEMENT</p>{% if current_user.role == 'admin' %}<a class="nav-item" href="{{ url_for('admin.socios') }}"><span class="nav-icon">◈</span>Socios</a>{% else %}<a class="nav-item disabled" href="#"><span class="nav-icon">◈</span>Socios<span class="coming-soon">Soon</span></a>{% endif %}<a class="nav-item disabled" href="#"><span class="nav-icon">₱</span>Finances<span class="coming-soon">Soon</span></a><a class="nav-item" href="{{ url_for('attendance.reports') }}"><span class="nav-icon">▤</span>Reports</a>{% if current_user.role == 'admin' %}<p class="nav-label">ADMINISTRATION</p><a class="nav-item" href="{{ url_for('admin.users') }}"><span class="nav-icon">⚙</span>User Management</a><a class="nav-item" href="{{ url_for('bulletin.manage') }}"><span class="nav-icon">✎</span>Manage Bulletin</a>{% endif %}</nav><div class="sidebar-bottom"><a class="nav-item" href="{{ url_for('auth.logout') }}"><span class="nav-icon">↪</span>Log out</a></div></aside>
-<main class="dashboard-main"><header class="topbar"><div><p class="eyebrow">ATTENDANCE MANAGEMENT</p><h1>{{ session.socio.name }}</h1><p class="welcome-text">{{ session.session_date.strftime('%A, %B %d, %Y') }} · Regular Attendance</p></div></header>
+<div class="dashboard-layout">
+<aside class="sidebar">
+<div class="brand"><div class="brand-mark">NDMU</div><div><strong>Notre Dame of Marbel University</strong><span>Socio Attendance System</span></div></div>
+<nav class="sidebar-nav">
+<p class="nav-label">MAIN</p>
+<a class="nav-item" href="{{ url_for('dashboard') }}"><span class="nav-icon">▦</span>Dashboard</a>
+<a class="nav-item" href="{{ url_for('bulletin.index') }}"><span class="nav-icon">▤</span>Bulletin Board</a>
+<a class="nav-item disabled" href="#"><span class="nav-icon">♙</span>Members<span class="coming-soon">Soon</span></a>
+<a class="nav-item active" href="{{ url_for('attendance.index') }}"><span class="nav-icon">✓</span>Attendance</a>
+<a class="nav-item disabled" href="#"><span class="nav-icon">▣</span>Activities<span class="coming-soon">Soon</span></a>
+<p class="nav-label">MANAGEMENT</p>
+{% if current_user.role == 'admin' %}<a class="nav-item" href="{{ url_for('admin.socios') }}"><span class="nav-icon">◈</span>Socios</a>{% else %}<a class="nav-item disabled" href="#"><span class="nav-icon">◈</span>Socios<span class="coming-soon">Soon</span></a>{% endif %}
+<a class="nav-item disabled" href="#"><span class="nav-icon">₱</span>Finances<span class="coming-soon">Soon</span></a>
+<a class="nav-item" href="{{ url_for('attendance.reports') }}"><span class="nav-icon">▤</span>Reports</a>
+{% if current_user.role == 'admin' %}<p class="nav-label">ADMINISTRATION</p><a class="nav-item" href="{{ url_for('admin.users') }}"><span class="nav-icon">⚙</span>User Management</a><a class="nav-item" href="{{ url_for('bulletin.manage') }}"><span class="nav-icon">✎</span>Manage Bulletin</a>{% endif %}
+</nav>
+<div class="sidebar-bottom"><a class="nav-item" href="{{ url_for('auth.logout') }}"><span class="nav-icon">↪</span>Log out</a></div>
+</aside>
+<main class="dashboard-main">
+<header class="topbar"><div><p class="eyebrow">ATTENDANCE REVIEW</p><h1>{{ session.socio.name }}</h1><p class="welcome-text">{{ session.session_date.strftime('%A, %B %d, %Y') }} · Review member attendance submissions.</p></div></header>
 {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
-{% if current_user.role == 'admin' %}<section class="panel no-attendance-panel"><div class="panel-header"><div><p class="eyebrow">ADMIN CONTROL</p><h2>Attendance Day Control</h2><p>Use this for holidays, special days, or dates when the socio does not need to log attendance.</p></div></div><form method="post" action="{{ url_for('attendance.set_no_attendance', session_id=session.id) }}" class="no-attendance-form"><label class="checkbox-row"><input type="checkbox" name="no_attendance" {% if session.no_attendance %}checked{% endif %}><span><strong>No attendance for this date</strong><small>Members will not receive attendance records for this day.</small></span></label><input type="text" name="reason" value="{{ session.no_attendance_reason or '' }}" placeholder="Reason, e.g. Holiday or special school event"><button class="button" type="submit">Save Day Setting</button></form></section>{% endif %}
-{% if session.no_attendance %}<section class="panel empty-state"><div class="empty-icon">—</div><h3>No Attendance</h3><p>This date has been excluded from attendance logging.</p>{% if session.no_attendance_reason %}<p class="muted">Reason: {{ session.no_attendance_reason }}</p>{% endif %}</section>{% else %}<section class="stats-grid"><article class="stat-card"><div class="stat-icon users-icon">♙</div><div><span>Members</span><strong>{{ records|length }}</strong></div><small>Active members</small></article><article class="stat-card"><div class="stat-icon activity-icon">✓</div><div><span>Attended</span><strong>{{ records|selectattr('status','in',['present','practicing','late'])|list|length }}</strong></div><small>Present, practicing or late</small></article><article class="stat-card"><div class="stat-icon socios-icon">◷</div><div><span>Practicing</span><strong>{{ records|selectattr('status','equalto','practicing')|list|length }}</strong></div><small>Marked as practicing</small></article><article class="stat-card"><div class="stat-icon finance-icon">!</div><div><span>Absent</span><strong>{{ records|selectattr('status','equalto','absent')|list|length }}</strong></div><small>Not recorded as attending</small></article></section><section class="panel"><div class="panel-header"><div><p class="eyebrow">DAILY ROSTER</p><h2>Member Attendance</h2><p>Record time in, time out, status, and notes.</p></div><span class="panel-badge">{{ records|length }} members</span></div><div class="table-wrap"><table><thead><tr><th>Member</th><th>Status</th><th>Time In</th><th>Time Out</th><th>Duration</th><th>Notes</th><th>Save</th></tr></thead><tbody>{% for record in records %}<form id="attendance-form-{{ record.id }}" method="post" action="{{ url_for('attendance.record', session_id=session.id, record_id=record.id) }}"></form><tr><td><strong>{{ record.user.full_name }}</strong><br><small>@{{ record.user.username }}</small></td><td><select form="attendance-form-{{ record.id }}" name="status"><option value="present" {% if record.status=='present' %}selected{% endif %}>Present</option><option value="practicing" {% if record.status=='practicing' %}selected{% endif %}>Practicing</option><option value="late" {% if record.status=='late' %}selected{% endif %}>Late</option><option value="excused" {% if record.status=='excused' %}selected{% endif %}>Excused</option><option value="absent" {% if record.status=='absent' %}selected{% endif %}>Absent</option></select></td><td><input form="attendance-form-{{ record.id }}" type="time" name="time_in" value="{{ record.time_in.strftime('%H:%M') if record.time_in else '' }}"></td><td><input form="attendance-form-{{ record.id }}" type="time" name="time_out" value="{{ record.time_out.strftime('%H:%M') if record.time_out else '' }}"></td><td>{% if record.duration_minutes is not none %}<strong>{{ record.duration_minutes // 60 }}h {{ record.duration_minutes % 60 }}m</strong>{% else %}<span class="muted">—</span>{% endif %}</td><td><input form="attendance-form-{{ record.id }}" type="text" name="notes" value="{{ record.notes or '' }}" placeholder="Optional"></td><td><button form="attendance-form-{{ record.id }}" class="button button-small" type="submit">Save</button></td></tr>{% endfor %}</tbody></table></div></section>{% endif %}
+
+{% if current_user.role == 'admin' %}
+<section class="panel no-attendance-panel"><div class="panel-header"><div><p class="eyebrow">ADMIN CONTROL</p><h2>Attendance Day Control</h2><p>Use this for holidays, special days, or dates when no attendance is required.</p></div></div><form method="post" action="{{ url_for('attendance.set_no_attendance', session_id=session.id) }}" class="no-attendance-form"><label class="checkbox-row"><input type="checkbox" name="no_attendance" {% if session.no_attendance %}checked{% endif %}><span><strong>No attendance for this date</strong><small>Members will not receive attendance logging controls for this day.</small></span></label><input type="text" name="reason" value="{{ session.no_attendance_reason or '' }}" placeholder="Reason, e.g. Holiday or special school event"><button class="button" type="submit">Save Day Setting</button></form></section>
+{% endif %}
+
+{% if session.no_attendance %}
+<section class="panel empty-state"><div class="empty-icon">—</div><h3>No Attendance</h3><p>This date has been excluded from attendance logging.</p>{% if session.no_attendance_reason %}<p class="muted">Reason: {{ session.no_attendance_reason }}</p>{% endif %}</section>
+{% else %}
+<section class="stats-grid">
+<article class="stat-card"><div class="stat-icon users-icon">♙</div><div><span>Members</span><strong>{{ records|length }}</strong></div><small>Active attendance participants</small></article>
+<article class="stat-card"><div class="stat-icon activity-icon">✓</div><div><span>Pending</span><strong>{{ records|selectattr('approval_status','equalto','pending')|list|length }}</strong></div><small>Awaiting moderator review</small></article>
+<article class="stat-card"><div class="stat-icon socios-icon">✓</div><div><span>Approved</span><strong>{{ records|selectattr('approval_status','equalto','approved')|list|length }}</strong></div><small>Official attendance</small></article>
+<article class="stat-card"><div class="stat-icon finance-icon">!</div><div><span>Absent</span><strong>{{ records|selectattr('status','equalto','absent')|list|length }}</strong></div><small>No submitted attendance</small></article>
+</section>
+<section class="panel"><div class="panel-header"><div><p class="eyebrow">MODERATOR REVIEW</p><h2>Member Submissions</h2><p>Verify each member's time log before approving it as official attendance.</p></div><span class="panel-badge">{{ records|selectattr('approval_status','equalto','pending')|list|length }} pending</span></div>
+<div class="table-wrap"><table><thead><tr><th>Member</th><th>Status</th><th>Time In</th><th>Time Out</th><th>Duration</th><th>Approval</th><th>Action</th></tr></thead><tbody>
+{% for record in records %}
+<tr>
+<td><strong>{{ record.user.full_name }}</strong><br><small>@{{ record.user.username }}</small>{% if record.notes %}<br><small>{{ record.notes }}</small>{% endif %}</td>
+<td><span class="role-badge">{{ record.status.title() }}</span></td>
+<td>{{ record.time_in.strftime('%I:%M %p') if record.time_in else '—' }}</td>
+<td>{{ record.time_out.strftime('%I:%M %p') if record.time_out else '—' }}</td>
+<td>{{ (record.duration_minutes // 60) ~ 'h ' ~ (record.duration_minutes % 60) ~ 'm' if record.duration_minutes is not none else '—' }}</td>
+<td><span class="status-badge {% if record.approval_status == 'approved' %}active-status{% elif record.approval_status == 'rejected' %}inactive-status{% else %}pending-status{% endif %}">{{ record.approval_status.replace('_',' ').title() }}</span>{% if record.rejection_reason %}<br><small>{{ record.rejection_reason }}</small>{% endif %}</td>
+<td>
+{% if record.approval_status == 'pending' %}
+<div class="approval-actions">
+<form method="post" action="{{ url_for('attendance.approve', session_id=session.id, record_id=record.id) }}"><button class="button button-small" type="submit">Approve</button></form>
+<form method="post" action="{{ url_for('attendance.reject', session_id=session.id, record_id=record.id) }}"><input type="text" name="reason" placeholder="Reason for rejection"><button class="secondary-button button-small" type="submit">Reject</button></form>
+</div>
+{% elif current_user.role == 'admin' %}<span class="muted">Use admin edit below</span>{% else %}<span class="muted">Reviewed</span>{% endif %}
+</td>
+</tr>
+{% else %}<tr><td colspan="7" class="empty-state">No member attendance records.</td></tr>{% endfor %}
+</tbody></table></div></section>
+{% if current_user.role == 'admin' %}
+<section class="panel"><div class="panel-header"><div><p class="eyebrow">ADMIN EDIT</p><h2>Correct Attendance</h2><p>Administrators can make a direct correction when a record needs an official adjustment.</p></div></div><div class="table-wrap"><table><thead><tr><th>Member</th><th>Status</th><th>Time In</th><th>Time Out</th><th>Notes</th><th>Save</th></tr></thead><tbody>
+{% for record in records %}<tr><form id="admin-attendance-{{ record.id }}" method="post" action="{{ url_for('attendance.record', session_id=session.id, record_id=record.id) }}"></form><td><strong>{{ record.user.full_name }}</strong></td><td><select form="admin-attendance-{{ record.id }}" name="status"><option value="present" {% if record.status=='present' %}selected{% endif %}>Present</option><option value="late" {% if record.status=='late' %}selected{% endif %}>Late</option><option value="excused" {% if record.status=='excused' %}selected{% endif %}>Excused</option><option value="absent" {% if record.status=='absent' %}selected{% endif %}>Absent</option></select></td><td><input form="admin-attendance-{{ record.id }}" type="time" name="time_in" value="{{ record.time_in.strftime('%H:%M') if record.time_in else '' }}"></td><td><input form="admin-attendance-{{ record.id }}" type="time" name="time_out" value="{{ record.time_out.strftime('%H:%M') if record.time_out else '' }}"></td><td><input form="admin-attendance-{{ record.id }}" type="text" name="notes" value="{{ record.notes or '' }}"></td><td><button form="admin-attendance-{{ record.id }}" class="button button-small" type="submit">Save</button></td></tr>{% endfor %}
+</tbody></table></div></section>
+{% endif %}
+{% endif %}
 </main></div></body></html>
