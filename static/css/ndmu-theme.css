@@ -1,0 +1,274 @@
+:root {
+    --bg: #f5f7f2;
+    --surface: #ffffff;
+    --surface-soft: #f8faf5;
+    --border: #e2e7dc;
+    --text: #173b2a;
+    --muted: #6b7c70;
+    --primary: #1f6b45;
+    --primary-dark: #174f33;
+    --sidebar: #123b29;
+    --gold: #d4a72c;
+    --gold-soft: #fbf3d8;
+}
+
+body {
+    background: linear-gradient(180deg, #f7f9f4 0%, #f1f5ee 100%);
+}
+
+.sidebar {
+    background: linear-gradient(180deg, #123b29 0%, #0d3021 100%);
+    border-right: 1px solid rgba(212, 167, 44, .22);
+}
+
+.brand-mark {
+    background: linear-gradient(135deg, #d4a72c, #b98b18);
+    color: #173b2a;
+    box-shadow: 0 5px 16px rgba(212, 167, 44, .18);
+}
+
+.nav-item:hover:not(.disabled),
+.nav-item.active {
+    background: rgba(212, 167, 44, .13);
+    color: #fff;
+}
+
+.nav-item.active {
+    box-shadow: inset 3px 0 0 var(--gold);
+}
+
+.eyebrow {
+    color: var(--primary);
+}
+
+.button,
+.primary-button {
+    background: var(--primary);
+    color: #fff;
+    border: 0;
+    border-radius: 8px;
+    padding: 10px 15px;
+    font-weight: 700;
+    font-size: 11px;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.button:hover,
+.primary-button:hover {
+    background: var(--primary-dark);
+}
+
+.button-small {
+    padding: 8px 11px;
+    font-size: 10px;
+}
+
+.panel,
+.stat-card,
+.profile-chip {
+    border-color: #dfe6d9;
+    box-shadow: 0 8px 28px rgba(22, 59, 42, .045);
+}
+
+.panel-header {
+    border-bottom-color: #e8ede3;
+}
+
+.stat-icon,
+.avatar,
+.mini-avatar,
+.socio-mark {
+    background: var(--gold-soft);
+    color: var(--primary);
+}
+
+.date-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 22px;
+    margin-bottom: 22px;
+}
+
+.date-panel h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 18px;
+}
+
+.inline-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.inline-form input,
+.form-grid input,
+.form-grid select,
+.no-attendance-form input[type="text"],
+td input,
+td select {
+    min-height: 38px;
+    border: 1px solid #d5dfd1;
+    border-radius: 7px;
+    padding: 8px 10px;
+    background: #fff;
+    color: var(--text);
+    outline: none;
+    font-size: 11px;
+}
+
+.inline-form input:focus,
+.form-grid input:focus,
+.form-grid select:focus,
+td input:focus,
+td select:focus {
+    border-color: #8bad95;
+    box-shadow: 0 0 0 3px rgba(31, 107, 69, .09);
+}
+
+.socio-grid {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.socio-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 17px;
+    border: 1px solid #e1e8dc;
+    border-radius: 10px;
+    background: #fbfcfa;
+}
+
+.socio-card strong,
+.socio-card span {
+    display: block;
+}
+
+.socio-card strong {
+    color: var(--text);
+    font-size: 12px;
+}
+
+.socio-card span {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.socio-card.muted-card {
+    background: #faf8ef;
+    border-color: #eadfb9;
+}
+
+.status-pill {
+    display: inline-block;
+    padding: 5px 8px;
+    border-radius: 999px;
+    background: var(--gold-soft);
+    color: #876816;
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.notice-card {
+    margin: 20px;
+    padding: 16px;
+    border: 1px solid #eadfb9;
+    border-radius: 10px;
+    background: #fffaf0;
+}
+
+.notice-card strong,
+.notice-card span {
+    display: block;
+}
+
+.notice-card strong {
+    color: #795c12;
+    font-size: 12px;
+}
+
+.notice-card span {
+    margin-top: 5px;
+    color: #88784d;
+    font-size: 10px;
+}
+
+.no-attendance-panel {
+    border-color: #e7ddbc;
+}
+
+.no-attendance-form {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+}
+
+.checkbox-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    color: var(--text);
+    font-size: 11px;
+}
+
+.checkbox-row input {
+    margin-top: 2px;
+    accent-color: var(--primary);
+}
+
+.checkbox-row strong,
+.checkbox-row small {
+    display: block;
+}
+
+.checkbox-row small {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 9px;
+    line-height: 1.4;
+}
+
+td input[type="time"] {
+    width: 105px;
+}
+
+td input[type="text"] {
+    width: 145px;
+}
+
+td select {
+    width: 105px;
+}
+
+@media (max-width: 900px) {
+    .socio-grid,
+    .no-attendance-form {
+        grid-template-columns: 1fr;
+    }
+
+    .date-panel {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 560px) {
+    .inline-form {
+        width: 100%;
+    }
+
+    .inline-form input {
+        flex: 1;
+    }
+}
