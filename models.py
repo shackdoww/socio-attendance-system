@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -6,12 +6,16 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from extensions import db
 
 
+def utc_now_naive():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 class Socio(db.Model):
     __tablename__ = "socios"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True, nullable=False)
     description = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now_naive, nullable=False)
     users = db.relationship("User", back_populates="socio", lazy=True)
     activities = db.relationship("Activity", back_populates="socio", cascade="all, delete-orphan", lazy=True)
     transactions = db.relationship("Transaction", back_populates="socio", cascade="all, delete-orphan", lazy=True)
@@ -28,7 +32,7 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(30), nullable=False, default="member")
     socio_id = db.Column(db.Integer, db.ForeignKey("socios.id"), nullable=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now_naive, nullable=False)
     socio = db.relationship("Socio", back_populates="users")
     attendance_records = db.relationship("Attendance", back_populates="user", cascade="all, delete-orphan", lazy=True)
     daily_attendance_records = db.relationship(
@@ -56,7 +60,7 @@ class Activity(db.Model):
     location = db.Column(db.String(200))
     starts_at = db.Column(db.DateTime, nullable=False)
     ends_at = db.Column(db.DateTime)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now_naive, nullable=False)
     socio = db.relationship("Socio", back_populates="activities")
     attendance_records = db.relationship("Attendance", back_populates="activity", cascade="all, delete-orphan", lazy=True)
 
@@ -68,7 +72,7 @@ class Attendance(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     status = db.Column(db.String(20), nullable=False, default="absent")
     checked_in_at = db.Column(db.DateTime)
-    recorded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    recorded_at = db.Column(db.DateTime, default=utc_now_naive, nullable=False)
     activity = db.relationship("Activity", back_populates="attendance_records")
     user = db.relationship("User", back_populates="attendance_records")
     __table_args__ = (db.UniqueConstraint("activity_id", "user_id", name="uq_activity_user_attendance"),)
@@ -83,7 +87,7 @@ class AttendanceSession(db.Model):
     no_attendance = db.Column(db.Boolean, nullable=False, default=False)
     no_attendance_reason = db.Column(db.String(255))
     created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now_naive, nullable=False)
     socio = db.relationship("Socio", back_populates="attendance_sessions")
     records = db.relationship("AttendanceLog", back_populates="session", cascade="all, delete-orphan", lazy=True)
     __table_args__ = (db.UniqueConstraint("socio_id", "session_date", name="uq_socio_attendance_date"),)
@@ -103,7 +107,7 @@ class AttendanceLog(db.Model):
     approved_by = db.Column(db.Integer, db.ForeignKey("users.id"))
     approved_at = db.Column(db.DateTime)
     rejection_reason = db.Column(db.String(255))
-    recorded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    recorded_at = db.Column(db.DateTime, default=utc_now_naive, nullable=False)
     session = db.relationship("AttendanceSession", back_populates="records")
     user = db.relationship("User", back_populates="daily_attendance_records", foreign_keys=[user_id])
     approver = db.relationship("User", foreign_keys=[approved_by])
@@ -118,7 +122,7 @@ class Transaction(db.Model):
     amount = db.Column(db.Numeric(12, 2), nullable=False)
     description = db.Column(db.String(255), nullable=False)
     transaction_date = db.Column(db.Date, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now_naive, nullable=False)
     socio = db.relationship("Socio", back_populates="transactions")
 
 
@@ -130,7 +134,7 @@ class BulletinPost(db.Model):
     post_type = db.Column(db.String(20), nullable=False, default="announcement")
     event_at = db.Column(db.DateTime)
     location = db.Column(db.String(200))
-    published_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    published_at = db.Column(db.DateTime, default=utc_now_naive, nullable=False)
+    updated_at = db.Column(db.DateTime, default=utc_now_naive, onupdate=utc_now_naive)
     author_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     author = db.relationship("User", back_populates="bulletin_posts")
