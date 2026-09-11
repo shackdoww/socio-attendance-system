@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edit User | Notre Dame of Marbel University</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ndmu-theme.css') }}">
+</head>
+<body class="dashboard-page">
+<div class="dashboard-layout">
+<aside class="sidebar">
+<div class="brand"><div class="brand-mark">NDMU</div><div><strong>Notre Dame of Marbel University</strong><span>Socio Attendance System</span></div></div>
+<nav class="sidebar-nav">
+<p class="nav-label">MAIN</p>
+<a class="nav-item" href="{{ url_for('dashboard') }}"><span class="nav-icon">▦</span>Dashboard</a>
+<a class="nav-item" href="{{ url_for('bulletin.index') }}"><span class="nav-icon">▤</span>Bulletin Board</a>
+<a class="nav-item disabled" href="#"><span class="nav-icon">♙</span>Members<span class="coming-soon">Soon</span></a>
+<a class="nav-item" href="{{ url_for('attendance.index') }}"><span class="nav-icon">✓</span>Attendance</a>
+<a class="nav-item disabled" href="#"><span class="nav-icon">▣</span>Activities<span class="coming-soon">Soon</span></a>
+<p class="nav-label">MANAGEMENT</p>
+<a class="nav-item" href="{{ url_for('admin.socios') }}"><span class="nav-icon">◈</span>Socios</a>
+<a class="nav-item disabled" href="#"><span class="nav-icon">₱</span>Finances<span class="coming-soon">Soon</span></a>
+<a class="nav-item" href="{{ url_for('attendance.reports') }}"><span class="nav-icon">▤</span>Reports</a>
+<p class="nav-label">ADMINISTRATION</p>
+<a class="nav-item active" href="{{ url_for('admin.users') }}"><span class="nav-icon">⚙</span>User Management</a>
+<a class="nav-item" href="{{ url_for('bulletin.manage') }}"><span class="nav-icon">✎</span>Manage Bulletin</a>
+</nav>
+<div class="sidebar-bottom"><a class="nav-item" href="{{ url_for('auth.logout') }}"><span class="nav-icon">↪</span>Log out</a></div>
+</aside>
+<main class="dashboard-main">
+<header class="topbar"><div><p class="eyebrow">ADMINISTRATION</p><h1>Edit User</h1><p class="welcome-text">Update account access for {{ user.full_name }}.</p></div></header>
+{% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
+<section class="panel">
+<div class="panel-header"><div><h2>Account Details</h2><p>Username: <strong>@{{ user.username }}</strong></p></div></div>
+<form class="user-form" method="post" action="{{ url_for('admin.edit_user', user_id=user.id) }}">
+<div class="form-grid">
+<label>Full name<input name="full_name" value="{{ user.full_name }}" required maxlength="150"></label>
+<label>Email<input type="email" name="email" value="{{ user.email }}" required maxlength="255"></label>
+<label>Role<select name="role" id="role" required>{% for role in ['member','president','vice_president','secretary','treasurer','socio_moderator','admin'] %}<option value="{{ role }}" {% if user.role == role %}selected{% endif %}>{{ role.replace('_',' ').title() }}</option>{% endfor %}</select></label>
+<label id="socio-field">Socio<select name="socio_id"><option value="">No socio assigned</option>{% for socio in socios %}<option value="{{ socio.id }}" {% if user.socio_id == socio.id %}selected{% endif %}>{{ socio.name }}</option>{% endfor %}</select></label>
+<label>Password <span class="optional-label">Optional</span><input type="password" name="password" minlength="8" autocomplete="new-password" placeholder="Leave blank to keep current password"></label>
+</div>
+<div class="button-row" style="display:flex;gap:10px;margin-top:18px;">
+<button class="primary-button" type="submit">Save Changes</button>
+<a class="secondary-button" href="{{ url_for('admin.users') }}">Cancel</a>
+</div>
+</form>
+</section>
+</main>
+</div>
+<script>
+function updateSocioVisibility() {
+    const role = document.getElementById('role').value;
+    document.getElementById('socio-field').style.display = role === 'admin' ? 'none' : '';
+}
+document.getElementById('role').addEventListener('change', updateSocioVisibility);
+updateSocioVisibility();
+</script>
+</body>
+</html>
