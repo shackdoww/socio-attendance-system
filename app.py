@@ -58,6 +58,7 @@ def create_app():
     from routes.admin import admin_bp
     from routes.bulletin import bulletin_bp
     from routes.attendance import attendance_bp
+    from routes.members import members_bp
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -73,6 +74,7 @@ def create_app():
     app.register_blueprint(admin_bp)
     app.register_blueprint(bulletin_bp)
     app.register_blueprint(attendance_bp)
+    app.register_blueprint(members_bp)
 
     @app.errorhandler(CSRFError)
     def handle_csrf_error(error):
@@ -192,7 +194,7 @@ def create_app():
         if current_user.role != "admin":
             abort(403)
 
-        user_count = db.session.scalar(db.select(db.func.count(User.id))) or 0
+        user_count = db.session.scalar(db.select(User.id).count()) if False else db.session.scalar(db.select(db.func.count(User.id))) or 0
         socio_count = db.session.scalar(db.select(db.func.count(Socio.id))) or 0
         activity_count = db.session.scalar(db.select(db.func.count(Activity.id))) or 0
         transaction_count = db.session.scalar(db.select(db.func.count(Transaction.id))) or 0
