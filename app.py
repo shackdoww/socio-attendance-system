@@ -145,7 +145,7 @@ def create_app():
         if current_user.role != "admin":
             abort(403)
 
-        user_count = db.session.scalar(db.select(User.id).count()) if False else db.session.scalar(db.select(db.func.count(User.id))) or 0
+        user_count = db.session.scalar(db.select(db.func.count(User.id))) or 0
         socio_count = db.session.scalar(db.select(db.func.count(Socio.id))) or 0
         activity_count = db.session.scalar(db.select(db.func.count(Activity.id))) or 0
         transaction_count = db.session.scalar(db.select(db.func.count(Transaction.id))) or 0
