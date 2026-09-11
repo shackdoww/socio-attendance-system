@@ -21,7 +21,7 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
 
-    from models import User
+    from models import Socio, User
     from routes.auth import auth_bp
     from routes.admin import admin_bp
 
@@ -50,6 +50,20 @@ def create_app():
     with app.app_context():
         import models
         db.create_all()
+
+        default_socios = [
+            "NDMU Rondalla Ensemble",
+            "NDMU Symphonic Band",
+        ]
+
+        for socio_name in default_socios:
+            existing = db.session.execute(
+                db.select(Socio).where(Socio.name == socio_name)
+            ).scalar_one_or_none()
+            if existing is None:
+                db.session.add(Socio(name=socio_name))
+
+        db.session.commit()
 
     return app
 
