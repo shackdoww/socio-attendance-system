@@ -104,6 +104,16 @@ def create_app():
             script = '<script src="/static/js/sidebar.js?v=20260912"></script>'
             if marker in html and "static/js/sidebar.js" not in html:
                 html = html.replace(marker, script + marker)
+
+            logout_pattern = r'<a([^>]*class="nav-item"[^>]*)href="/logout"([^>]*)>(.*?)</a>'
+            logout_replacement = (
+                '<form method="post" action="/logout" style="margin:0">'
+                '<button type="submit" class="nav-item" '
+                'style="width:100%;border:0;background:transparent;text-align:left;'
+                'font:inherit;cursor:pointer;">\3</button></form>'
+            )
+            html = re.sub(logout_pattern, logout_replacement, html, flags=re.IGNORECASE | re.DOTALL)
+
             if "<form" in html:
                 token = generate_csrf()
                 hidden_field = f'<input type="hidden" name="csrf_token" value="{token}">'
