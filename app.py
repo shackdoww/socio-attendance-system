@@ -1,5 +1,8 @@
 from flask import Flask, abort, redirect, render_template, url_for
 from flask_login import LoginManager, current_user, login_required
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFError, CSRFProtect, generate_csrf
 from dotenv import load_dotenv
 import os
@@ -12,17 +15,26 @@ load_dotenv()
 
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
+login_manager.session_protection = "strong"
 csrf = CSRFProtect()
+migrate = Migrate()
+limiter = Limiter(key_func=get_remote_address)
 
 
 def create_app():
     app = Flask(__name__)
+    environment = os.getenv("FLASK_ENV", "development").lower()
+    is_production = environment == "production"
 
     secret_key = os.getenv("SECRET_KEY")
     if not secret_key:
-        if os.getenv("FLASK_ENV", "development").lower() == "production":
+        if is_production:
             raise RuntimeError("SECRET_KEY must be set in production.")
         secret_key = "dev-secret-key-change-me"
+
+    rate_limit_storage = os.getenv("RATELIMIT_STORAGE_URI", "memory://")
+    if is_production and rate_limit_storage == "memory://":
+        raise RuntimeError("RATELIMIT_STORAGE_URI must use shared storage in production.")
 
     app.config["SECRET_KEY"] = secret_key
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///socio_attendance.db")
@@ -30,11 +42,21 @@ def create_app():
     app.config["WTF_CSRF_TIME_LIMIT"] = 3600
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-    app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "0") == "1"
+    app.config["SESSION_COOKIE_SECURE"] = os.getenv(
+        "SESSION_COOKIE_SECURE", "1" if is_production else "0"
+    ) == "1"
+    app.config["RATELIMIT_STORAGE_URI"] = rate_limit_storage
+    app.config["RATELIMIT_HEADERS_ENABLED"] = True
+
+    trusted_hosts = [host.strip() for host in os.getenv("TRUSTED_HOSTS", "").split(",") if host.strip()]
+    if trusted_hosts:
+        app.config["TRUSTED_HOSTS"] = trusted_hosts
 
     db.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
+    migrate.init_app(app, db)
+    limiter.init_app(app)
 
     from models import Activity, Socio, Transaction, User
     from routes.auth import auth_bp
@@ -89,11 +111,41 @@ def create_app():
             message="The page you requested does not exist.",
         ), 404
 
+    @app.errorhandler(429)
+    def handle_rate_limit(error):
+        return render_template(
+            "errors/400.html",
+            title="Too Many Attempts",
+            message="Too many requests were made. Please wait a moment and try again.",
+        ), 429
+
     @app.after_request
     def add_security_headers(response):
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault(
+            "Permissions-Policy",
+            "camera=(), microphone=(), geolocation=(), payment=()",
+        )
+        response.headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'self'; "
+            "img-src 'self' data: https://static.wixstatic.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com data:; "
+            "script-src 'self' 'unsafe-inline'; "
+            "connect-src 'self'; "
+            "object-src 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self'; "
+            "frame-ancestors 'self'",
+        )
+        if app.config["SESSION_COOKIE_SECURE"]:
+            response.headers.setdefault(
+                "Strict-Transport-Security",
+                "max-age=31536000; includeSubDomains",
+            )
         return response
 
     @app.after_request
@@ -163,6 +215,7 @@ def create_app():
         )
 
     @app.route("/health")
+    @limiter.exempt
     def health():
         try:
             db.session.execute(text("SELECT 1"))
