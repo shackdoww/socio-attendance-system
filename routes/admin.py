@@ -1,6 +1,6 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
-from sqlalchemy import or_
+from sqlalchemy import or
 
 from extensions import db
 from models import Socio, User
@@ -169,7 +169,15 @@ def assign_socio_roles(socio_id):
         "treasurer": request.form.get("treasurer_id") or None,
     }
 
-    selected_ids = [int(value) for value in assignments.values() if value]
+    selected_ids = []
+    for value in assignments.values():
+        if value:
+            try:
+                selected_ids.append(int(value))
+            except (TypeError, ValueError):
+                flash("One or more selected users are invalid.", "error")
+                return redirect(url_for("admin.socio_detail", socio_id=socio.id))
+
     if len(selected_ids) != len(set(selected_ids)):
         flash("A person cannot hold two officer positions in the same socio.", "error")
         return redirect(url_for("admin.socio_detail", socio_id=socio.id))
@@ -223,6 +231,13 @@ def create_user():
     if not username or not email or not full_name or not password:
         flash("All required fields must be filled in.", "error")
         return redirect(url_for("admin.users"))
+
+    if len(password) < 8:
+        flash("Password must be at least 8 characters long.", "error")
+        return redirect(url_for("admin.users"))
+
+    username = username.lower()
+    email = email.lower()
 
     if db.session.execute(db.select(User).where(User.username == username)).scalar_one_or_none():
         flash("That username already exists.", "error")
