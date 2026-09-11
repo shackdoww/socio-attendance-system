@@ -1,5 +1,6 @@
 from flask import Flask, abort, redirect, render_template, url_for
 from flask_login import LoginManager, current_user, login_required
+from flask_wtf.csrf import CSRFError, CSRFProtect
 from dotenv import load_dotenv
 import os
 from sqlalchemy import inspect, text
@@ -10,17 +11,29 @@ load_dotenv()
 
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
+csrf = CSRFProtect()
 
 
 def create_app():
     app = Flask(__name__)
 
-    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret-key-change-me")
+    secret_key = os.getenv("SECRET_KEY")
+    if not secret_key:
+        if os.getenv("FLASK_ENV", "development").lower() == "production":
+            raise RuntimeError("SECRET_KEY must be set in production.")
+        secret_key = "dev-secret-key-change-me"
+
+    app.config["SECRET_KEY"] = secret_key
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///socio_attendance.db")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config["WTF_CSRF_TIME_LIMIT"] = 3600
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "0") == "1"
 
     db.init_app(app)
     login_manager.init_app(app)
+    csrf.init_app(app)
 
     from models import Activity, Socio, Transaction, User
     from routes.auth import auth_bp
@@ -30,7 +43,10 @@ def create_app():
 
     @login_manager.user_loader
     def load_user(user_id):
-        user = db.session.get(User, int(user_id))
+        try:
+            user = db.session.get(User, int(user_id))
+        except (TypeError, ValueError):
+            return None
         if user is None or not user.is_active:
             return None
         return user
@@ -39,6 +55,45 @@ def create_app():
     app.register_blueprint(admin_bp)
     app.register_blueprint(bulletin_bp)
     app.register_blueprint(attendance_bp)
+
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(error):
+        return render_template(
+            "errors/400.html",
+            title="Security Check Failed",
+            message="This form could not be verified. Please refresh the page and try again.",
+        ), 400
+
+    @app.errorhandler(400)
+    def handle_bad_request(error):
+        return render_template(
+            "errors/400.html",
+            title="Bad Request",
+            message="The request could not be processed.",
+        ), 400
+
+    @app.errorhandler(403)
+    def handle_forbidden(error):
+        return render_template(
+            "errors/403.html",
+            title="Access Denied",
+            message="You do not have permission to access this page.",
+        ), 403
+
+    @app.errorhandler(404)
+    def handle_not_found(error):
+        return render_template(
+            "errors/404.html",
+            title="Page Not Found",
+            message="The page you requested does not exist.",
+        ), 404
+
+    @app.after_request
+    def add_security_headers(response):
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        return response
 
     @app.after_request
     def inject_shared_sidebar_script(response):
@@ -83,7 +138,12 @@ def create_app():
 
     @app.route("/health")
     def health():
-        return {"status": "ok"}
+        try:
+            db.session.execute(text("SELECT 1"))
+            return {"status": "ok"}
+        except Exception:
+            db.session.rollback()
+            return {"status": "unhealthy"}, 503
 
     with app.app_context():
         import models
@@ -146,4 +206,5 @@ app = create_app()
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    debug = os.getenv("FLASK_DEBUG", "0") == "1"
+    app.run(debug=debug)
