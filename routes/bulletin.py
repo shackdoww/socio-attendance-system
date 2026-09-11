@@ -1,4 +1,5 @@
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -9,13 +10,18 @@ from routes.admin import admin_required
 
 
 bulletin_bp = Blueprint("bulletin", __name__)
+PH_TIMEZONE = ZoneInfo("Asia/Manila")
+
+
+def now_ph():
+    return datetime.now(PH_TIMEZONE).replace(tzinfo=None)
 
 
 def parse_future_event(value):
     if not value:
         raise ValueError("Event date and time are required for future events.")
     event_at = datetime.fromisoformat(value)
-    if event_at <= datetime.now():
+    if event_at <= now_ph():
         raise ValueError("Event date and time must be in the future.")
     return event_at
 
