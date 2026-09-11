@@ -106,13 +106,18 @@ def create_app():
                 html = html.replace(marker, script + marker)
 
             logout_pattern = r'<a([^>]*class="nav-item"[^>]*)href="/logout"([^>]*)>(.*?)</a>'
-            logout_replacement = (
-                '<form method="post" action="/logout" style="margin:0">'
-                '<button type="submit" class="nav-item" '
-                'style="width:100%;border:0;background:transparent;text-align:left;'
-                'font:inherit;cursor:pointer;">\g<3></button></form>'
-            )
-            html = re.sub(logout_pattern, logout_replacement, html, flags=re.IGNORECASE | re.DOTALL)
+
+            def replace_logout(match):
+                return (
+                    '<form method="post" action="/logout" style="margin:0">'
+                    '<button type="submit" class="nav-item" '
+                    'style="width:100%;border:0;background:transparent;text-align:left;'
+                    'font:inherit;cursor:pointer;">'
+                    + match.group(3)
+                    + '</button></form>'
+                )
+
+            html = re.sub(logout_pattern, replace_logout, html, flags=re.IGNORECASE | re.DOTALL)
 
             if "<form" in html:
                 token = generate_csrf()
@@ -140,7 +145,7 @@ def create_app():
         if current_user.role != "admin":
             abort(403)
 
-        user_count = db.session.scalar(db.select(db.func.count(User.id))) or 0
+        user_count = db.session.scalar(db.select(User.id).count()) if False else db.session.scalar(db.select(db.func.count(User.id))) or 0
         socio_count = db.session.scalar(db.select(db.func.count(Socio.id))) or 0
         activity_count = db.session.scalar(db.select(db.func.count(Activity.id))) or 0
         transaction_count = db.session.scalar(db.select(db.func.count(Transaction.id))) or 0
