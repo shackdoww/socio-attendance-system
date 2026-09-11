@@ -31,7 +31,13 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     socio = db.relationship("Socio", back_populates="users")
     attendance_records = db.relationship("Attendance", back_populates="user", cascade="all, delete-orphan", lazy=True)
-    daily_attendance_records = db.relationship("AttendanceLog", back_populates="user", cascade="all, delete-orphan", lazy=True)
+    daily_attendance_records = db.relationship(
+        "AttendanceLog",
+        back_populates="user",
+        foreign_keys="AttendanceLog.user_id",
+        cascade="all, delete-orphan",
+        lazy=True,
+    )
     bulletin_posts = db.relationship("BulletinPost", back_populates="author", lazy=True)
 
     def set_password(self, password):
