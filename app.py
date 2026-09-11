@@ -1,11 +1,15 @@
 from flask import Flask, render_template
-from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager
 from dotenv import load_dotenv
 import os
+
+from flask_sqlalchemy import SQLAlchemy
 
 load_dotenv()
 
 db = SQLAlchemy()
+login_manager = LoginManager()
+login_manager.login_view = "login"
 
 
 def create_app():
@@ -18,6 +22,13 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     db.init_app(app)
+    login_manager.init_app(app)
+
+    from models import User
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        return db.session.get(User, int(user_id))
 
     @app.route("/")
     def index():
@@ -28,6 +39,7 @@ def create_app():
         return {"status": "ok"}
 
     with app.app_context():
+        import models
         db.create_all()
 
     return app
