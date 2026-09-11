@@ -154,6 +154,14 @@ def create_app():
             if marker in html and "static/js/sidebar.js" not in html:
                 html = html.replace(marker, script + marker)
 
+            members_pattern = r'<a([^>]*class="nav-item disabled"[^>]*)href="#"([^>]*)>(<span class="nav-icon">♙</span>Members)(<span class="coming-soon">Soon</span>)</a>'
+            html = re.sub(
+                members_pattern,
+                '<a class="nav-item" href="/members"><span class="nav-icon">♙</span>Members</a>',
+                html,
+                flags=re.IGNORECASE,
+            )
+
             logout_pattern = r'<a([^>]*class="nav-item"[^>]*)href="/logout"([^>]*)>(.*?)</a>'
 
             def replace_logout(match):
@@ -194,7 +202,7 @@ def create_app():
         if current_user.role != "admin":
             abort(403)
 
-        user_count = db.session.scalar(db.select(User.id).count()) if False else db.session.scalar(db.select(db.func.count(User.id))) or 0
+        user_count = db.session.scalar(db.select(db.func.count(User.id))) or 0
         socio_count = db.session.scalar(db.select(db.func.count(Socio.id))) or 0
         activity_count = db.session.scalar(db.select(db.func.count(Activity.id))) or 0
         transaction_count = db.session.scalar(db.select(db.func.count(Transaction.id))) or 0
