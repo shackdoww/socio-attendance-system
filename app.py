@@ -1,5 +1,5 @@
 from flask import Flask, render_template
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user, login_required
 from dotenv import load_dotenv
 import os
 
@@ -9,7 +9,7 @@ load_dotenv()
 
 db = SQLAlchemy()
 login_manager = LoginManager()
-login_manager.login_view = "login"
+login_manager.login_view = "auth.login"
 
 
 def create_app():
@@ -25,14 +25,24 @@ def create_app():
     login_manager.init_app(app)
 
     from models import User
+    from routes.auth import auth_bp
 
     @login_manager.user_loader
     def load_user(user_id):
         return db.session.get(User, int(user_id))
 
+    app.register_blueprint(auth_bp)
+
     @app.route("/")
     def index():
+        if current_user.is_authenticated:
+            return redirect(url_for("dashboard"))
         return render_template("index.html")
+
+    @app.route("/dashboard")
+    @login_required
+    def dashboard():
+        return render_template("dashboard.html")
 
     @app.route("/health")
     def health():
