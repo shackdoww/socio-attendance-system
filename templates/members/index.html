@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Members | Notre Dame of Marbel University</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ndmu-theme.css') }}">
+</head>
+<body class="dashboard-page">
+<div class="admin-layout">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-mark">NDMU</div>
+            <div><strong>Notre Dame of Marbel University</strong><span>Socio Attendance System</span></div>
+        </div>
+        <nav class="sidebar-nav">
+            <p class="nav-label">MAIN</p>
+            {% if current_user.role == 'admin' %}
+            <a class="nav-item" href="{{ url_for('dashboard') }}"><span class="nav-icon">▦</span>Dashboard</a>
+            {% endif %}
+            <a class="nav-item" href="{{ url_for('bulletin.index') }}"><span class="nav-icon">▤</span>Bulletin Board</a>
+            <a class="nav-item active" href="{{ url_for('members.index') }}"><span class="nav-icon">♙</span>Members</a>
+            <a class="nav-item" href="{{ url_for('attendance.index') }}"><span class="nav-icon">✓</span>Attendance</a>
+            <a class="nav-item disabled" href="#"><span class="nav-icon">▣</span>Activities<span class="coming-soon">Soon</span></a>
+            <p class="nav-label">MANAGEMENT</p>
+            {% if current_user.role == 'admin' %}
+            <a class="nav-item" href="{{ url_for('admin.socios') }}"><span class="nav-icon">◈</span>Socios</a>
+            <a class="nav-item disabled" href="#"><span class="nav-icon">₱</span>Finances<span class="coming-soon">Soon</span></a>
+            <a class="nav-item" href="{{ url_for('attendance.reports') }}"><span class="nav-icon">▤</span>Reports</a>
+            <p class="nav-label">ADMINISTRATION</p>
+            <a class="nav-item" href="{{ url_for('admin.users') }}"><span class="nav-icon">⚙</span>User Management</a>
+            <a class="nav-item" href="{{ url_for('bulletin.manage') }}"><span class="nav-icon">✎</span>Manage Bulletin</a>
+            {% endif %}
+        </nav>
+        <div class="sidebar-bottom">
+            <a class="nav-item" href="{{ url_for('auth.logout') }}"><span class="nav-icon">↪</span>Log out</a>
+        </div>
+    </aside>
+
+    <main class="admin-main">
+        <header class="content-header">
+            <div>
+                <p class="eyebrow">DIRECTORY</p>
+                <h1>Members</h1>
+                <p class="muted">View members by socio and assigned position.</p>
+            </div>
+        </header>
+
+        <section class="panel members-filter-panel">
+            <div class="panel-header">
+                <div>
+                    <h2>Filter Members</h2>
+                    <p>Use the filters to find a specific member, socio, or assignment.</p>
+                </div>
+                <span class="member-count">{{ users|length }} shown</span>
+            </div>
+            <form method="get" class="member-filters">
+                <label class="filter-search">Search
+                    <input type="search" name="search" value="{{ search }}" placeholder="Name, username, or email">
+                </label>
+                {% if current_user.role == 'admin' %}
+                <label>Socio
+                    <select name="socio">
+                        <option value="">All socios</option>
+                        {% for socio in socios %}
+                        <option value="{{ socio.id }}" {% if selected_socio == socio.id|string %}selected{% endif %}>{{ socio.name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                {% else %}
+                <label>Socio
+                    <select disabled>
+                        <option>{{ current_user.socio.name if current_user.socio else 'No socio assigned' }}</option>
+                    </select>
+                </label>
+                {% endif %}
+                <label>Assignment
+                    <select name="role">
+                        <option value="">All assignments</option>
+                        {% for role in role_order %}
+                        <option value="{{ role }}" {% if selected_role == role %}selected{% endif %}>{{ roles[role] }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Status
+                    <select name="status">
+                        <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
+                        <option value="inactive" {% if selected_status == 'inactive' %}selected{% endif %}>Inactive</option>
+                        <option value="all" {% if selected_status == 'all' %}selected{% endif %}>All statuses</option>
+                    </select>
+                </label>
+                <div class="filter-actions">
+                    <button class="primary-button" type="submit">Apply Filters</button>
+                    <a class="secondary-button" href="{{ url_for('members.index') }}">Clear</a>
+                </div>
+            </form>
+        </section>
+
+        {% for socio_name, members in grouped_members.items() %}
+        <section class="panel member-group">
+            <div class="panel-header member-group-header">
+                <div>
+                    <p class="eyebrow">SOCIO</p>
+                    <h2>{{ socio_name }}</h2>
+                </div>
+                <span class="member-count">{{ members|length }} member{% if members|length != 1 %}s{% endif %}</span>
+            </div>
+            <div class="table-wrap">
+                <table class="members-table">
+                    <thead>
+                    <tr>
+                        <th>Member</th>
+                        <th>Assignment</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for user in members %}
+                    <tr>
+                        <td>
+                            <div class="member-name-cell">
+                                <span class="member-avatar">{{ user.full_name[:1]|upper }}</span>
+                                <div>
+                                    <strong>{{ user.full_name }}</strong>
+                                    <small>@{{ user.username }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="role-badge role-{{ user.role }}">{{ roles.get(user.role, user.role.replace('_', ' ').title()) }}</span>
+                        </td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            <span class="status {{ 'active-status' if user.is_active else 'inactive-status' }}">
+                                {{ 'Active' if user.is_active else 'Inactive' }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% else %}
+        <section class="panel empty-members">
+            <div class="empty-icon">♙</div>
+            <h2>No members found</h2>
+            <p>Try changing the search or filters.</p>
+            <a class="secondary-button" href="{{ url_for('members.index') }}">Clear Filters</a>
+        </section>
+        {% endfor %}
+    </main>
+</div>
+</body>
+</html>
