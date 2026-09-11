@@ -51,7 +51,7 @@
     overflow: hidden;
     border: 1px solid rgba(11, 86, 56, .12) !important;
     border-radius: 30px !important;
-    background: rgba(255, 255, 255, .92) !important;
+    background: rgba(255, 255, 255, .94) !important;
     box-shadow: 0 28px 80px rgba(7, 59, 40, .14), 0 5px 20px rgba(7, 59, 40, .05) !important;
     backdrop-filter: blur(18px);
     animation: loginCardIn .55s cubic-bezier(.2,.8,.2,1) both;
@@ -59,17 +59,19 @@
 
 .auth-card::before {
     content: '' !important;
-    grid-column: 1;
-    grid-row: 1;
-    width: auto !important;
-    height: auto !important;
+    position: absolute !important;
+    inset: 0 auto 0 0 !important;
+    width: 42% !important;
+    height: 100% !important;
     margin: 0 !important;
     border-radius: 0 !important;
     background:
-        linear-gradient(145deg, rgba(4, 55, 37, .97), rgba(8, 91, 59, .93)),
+        radial-gradient(circle at 50% 35%, rgba(242,198,47,.18), transparent 120px),
+        linear-gradient(145deg, rgba(4, 55, 37, .98), rgba(8, 91, 59, .94)),
         url('https://static.wixstatic.com/media/9cf2f4_4569d3d3eb9c40a1ad6afd3f04e67cd9~mv2.png/v1/fill/w_980%2Ch_980%2Cal_c%2Cq_90%2Cusm_0.66_1.00_0.01%2Cenc_avif%2Cquality_auto/NDMU_Logo.png') center/220px no-repeat !important;
+    background-blend-mode: normal, normal, normal !important;
     box-shadow: none !important;
-    position: relative;
+    z-index: 0;
 }
 
 .auth-card::after {
@@ -78,51 +80,96 @@
     left: 0;
     top: 0;
     bottom: 0;
-    width: 44%;
+    width: 42%;
     background:
-        radial-gradient(circle at 50% 38%, rgba(242,198,47,.16), transparent 115px),
+        radial-gradient(circle at 50% 37%, rgba(242,198,47,.13), transparent 155px),
         radial-gradient(circle at 18% 88%, rgba(255,255,255,.08), transparent 180px);
     pointer-events: none;
+    z-index: 1;
 }
 
-.auth-card h1,
-.auth-card > p,
-.auth-card form,
-.auth-card .alert {
+.login-panel-logo {
+    display: none;
+}
+
+.login-content {
     grid-column: 2;
+    grid-row: 1;
+    align-self: center;
     position: relative;
     z-index: 3;
+    padding: 58px 64px 48px;
+}
+
+.login-kicker {
+    margin-bottom: 18px;
+    color: #3d7757;
+    font-family: 'Manrope', sans-serif;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 2px;
+}
+
+.login-title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 27px;
+}
+
+.login-seal {
+    width: 46px;
+    height: 46px;
+    object-fit: contain;
+    flex: 0 0 auto;
+}
+
+.login-university-short {
+    color: #0b5638;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.8px;
+}
+
+.login-university-sub {
+    margin-top: 3px;
+    color: #7a8981;
+    font-family: 'Manrope', sans-serif;
+    font-size: 9px;
+    line-height: 1.35;
 }
 
 .auth-card h1 {
-    margin: 78px 64px 10px !important;
+    margin: 0 0 9px !important;
     color: #103d2b !important;
     font-family: 'Plus Jakarta Sans', 'Manrope', Arial, sans-serif !important;
-    font-size: clamp(25px, 3vw, 34px) !important;
+    font-size: clamp(28px, 3vw, 38px) !important;
     font-weight: 800 !important;
-    line-height: 1.12 !important;
-    letter-spacing: -1.2px !important;
+    line-height: 1.08 !important;
+    letter-spacing: -1.4px !important;
 }
 
-.auth-card > p {
-    margin: 0 64px !important;
+.login-description {
+    margin: 0 !important;
     color: #718279 !important;
-    font-size: 13px !important;
+    font-family: 'Manrope', sans-serif !important;
+    font-size: 12px !important;
     line-height: 1.6 !important;
 }
 
 .auth-card form {
-    margin: 32px 64px 60px !important;
+    margin: 30px 0 0 !important;
     display: grid;
     grid-template-columns: 1fr;
-    gap: 8px;
+    gap: 7px;
 }
 
 .auth-card label {
     margin-top: 8px;
     color: #315f48 !important;
     font-family: 'Manrope', sans-serif !important;
-    font-size: 11px !important;
+    font-size: 10px !important;
     font-weight: 800 !important;
     letter-spacing: .25px;
 }
@@ -137,8 +184,12 @@
     background: #fbfdfb !important;
     color: #173e2d !important;
     font-family: 'Manrope', sans-serif !important;
-    font-size: 13px !important;
+    font-size: 12px !important;
     transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+
+.auth-card input::placeholder {
+    color: #a3aea8;
 }
 
 .auth-card input:focus {
@@ -156,12 +207,18 @@
     background: linear-gradient(135deg, #126545, #07472f) !important;
     color: #fff !important;
     font-family: 'Manrope', sans-serif !important;
-    font-size: 12px !important;
+    font-size: 11px !important;
     font-weight: 800 !important;
-    letter-spacing: .15px;
+    letter-spacing: .3px;
     cursor: pointer;
     box-shadow: 0 12px 25px rgba(7, 71, 47, .18) !important;
     transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.auth-card button span {
+    margin-left: 5px;
+    font-size: 14px;
+    transition: transform .2s ease;
 }
 
 .auth-card button:hover {
@@ -169,16 +226,21 @@
     box-shadow: 0 16px 30px rgba(7, 71, 47, .24) !important;
 }
 
+.auth-card button:hover span {
+    display: inline-block;
+    transform: translateX(3px);
+}
+
 .auth-card button:active {
     transform: translateY(0);
 }
 
 .auth-card .alert {
-    margin: 18px 64px 0;
+    margin: 18px 0 0;
     padding: 11px 13px;
     border-radius: 11px;
     font-family: 'Manrope', sans-serif;
-    font-size: 11px;
+    font-size: 10px;
 }
 
 .auth-card .alert.error {
@@ -191,6 +253,14 @@
     color: #236b45;
     background: #eef8f0;
     border: 1px solid #d4e9d8;
+}
+
+.login-footer {
+    margin: 22px 0 0 !important;
+    color: #a0aaa4 !important;
+    font-family: 'Manrope', sans-serif !important;
+    font-size: 8px !important;
+    line-height: 1.5 !important;
 }
 
 @keyframes loginCardIn {
@@ -206,24 +276,30 @@
         border-radius: 24px !important;
     }
     .auth-card::before {
-        grid-column: 1;
-        grid-row: 1;
-        min-height: 205px;
+        width: 100% !important;
+        height: 205px !important;
+        inset: 0 0 auto 0 !important;
         background-size: 150px !important;
     }
-    .auth-card::after { width: 100%; height: 205px; bottom: auto; }
-    .auth-card h1,
-    .auth-card > p,
-    .auth-card form,
-    .auth-card .alert { grid-column: 1; }
-    .auth-card h1 { margin: 34px 28px 9px !important; font-size: 25px !important; }
-    .auth-card > p { margin: 0 28px !important; }
-    .auth-card form { margin: 25px 28px 34px !important; }
-    .auth-card .alert { margin: 20px 28px 0; }
+    .auth-card::after {
+        width: 100%;
+        height: 205px;
+        bottom: auto;
+    }
+    .login-content {
+        grid-column: 1;
+        grid-row: 1;
+        margin-top: 205px;
+        padding: 32px 28px 34px;
+    }
+    .login-kicker { margin-bottom: 14px; }
+    .login-title-row { margin-bottom: 22px; }
+    .auth-card h1 { font-size: 27px !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .auth-card,
     .auth-card input,
-    .auth-card button { animation: none !important; transition: none !important; }
+    .auth-card button,
+    .auth-card button span { animation: none !important; transition: none !important; }
 }
