@@ -1,8 +1,9 @@
 from flask import Flask, abort, redirect, render_template, url_for
 from flask_login import LoginManager, current_user, login_required
-from flask_wtf.csrf import CSRFError, CSRFProtect
+from flask_wtf.csrf import CSRFError, CSRFProtect, generate_csrf
 from dotenv import load_dotenv
 import os
+import re
 from sqlalchemy import inspect, text
 
 from extensions import db
@@ -102,7 +103,17 @@ def create_app():
             marker = "</body>"
             script = '<script src="/static/js/sidebar.js?v=20260912"></script>'
             if marker in html and "static/js/sidebar.js" not in html:
-                response.set_data(html.replace(marker, script + marker))
+                html = html.replace(marker, script + marker)
+            if "<form" in html:
+                token = generate_csrf()
+                hidden_field = f'<input type="hidden" name="csrf_token" value="{token}">'
+                html = re.sub(
+                    r'(<form\b(?=[^>]*\bmethod=["\']?post\b)[^>]*>)',
+                    lambda match: match.group(1) + hidden_field,
+                    html,
+                    flags=re.IGNORECASE,
+                )
+            response.set_data(html)
         return response
 
     @app.route("/")
