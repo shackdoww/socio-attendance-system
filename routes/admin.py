@@ -42,6 +42,32 @@ def users():
     return render_template("admin/users.html", users=users, socios=socios, search=search)
 
 
+@admin_bp.route("/socios/create", methods=["POST"])
+@admin_required
+def create_socio():
+    name = request.form.get("name", "").strip()
+    description = request.form.get("description", "").strip()
+
+    if not name:
+        flash("Socio group name is required.", "error")
+        return redirect(url_for("admin.users"))
+
+    existing = db.session.execute(
+        db.select(Socio).where(Socio.name.ilike(name))
+    ).scalar_one_or_none()
+
+    if existing:
+        flash("That socio group already exists.", "error")
+        return redirect(url_for("admin.users"))
+
+    socio = Socio(name=name, description=description or None)
+    db.session.add(socio)
+    db.session.commit()
+
+    flash(f"Socio group '{name}' created successfully.", "success")
+    return redirect(url_for("admin.users"))
+
+
 @admin_bp.route("/users/create", methods=["POST"])
 @admin_required
 def create_user():
