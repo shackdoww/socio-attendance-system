@@ -1,13 +1,14 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
-from extensions import db
+from extensions import db, limiter
 from models import User
 
 auth_bp = Blueprint("auth", __name__)
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
+@limiter.limit("5 per minute;20 per hour", methods=["POST"])
 def login():
     if current_user.is_authenticated:
         if current_user.role == "admin":
@@ -15,14 +16,14 @@ def login():
         return redirect(url_for("attendance.index"))
 
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
+        username = request.form.get("username", "").strip().lower()
         password = request.form.get("password", "")
         user = db.session.execute(
             db.select(User).where(User.username == username)
         ).scalar_one_or_none()
 
         if user and user.is_active and user.check_password(password):
-            login_user(user)
+            login_user(user, fresh=True)
             if user.role == "admin":
                 return redirect(url_for("dashboard"))
             return redirect(url_for("attendance.index"))
