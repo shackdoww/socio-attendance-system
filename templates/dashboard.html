@@ -40,11 +40,18 @@
                 </a>
 
                 <p class="nav-label">MANAGEMENT</p>
+                {% if current_user.role == 'admin' %}
+                <a class="nav-item" href="{{ url_for('admin.socios') }}">
+                    <span class="nav-icon">◈</span>
+                    Socios
+                </a>
+                {% else %}
                 <a class="nav-item disabled" href="#">
                     <span class="nav-icon">◈</span>
                     Socios
                     <span class="coming-soon">Soon</span>
                 </a>
+                {% endif %}
                 <a class="nav-item disabled" href="#">
                     <span class="nav-icon">₱</span>
                     Finances
