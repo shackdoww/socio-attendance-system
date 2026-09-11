@@ -40,12 +40,17 @@ def create_app():
     @app.route("/")
     def index():
         if current_user.is_authenticated:
-            return redirect(url_for("dashboard"))
+            if current_user.role == "admin":
+                return redirect(url_for("dashboard"))
+            return redirect(url_for("attendance.index"))
         return redirect(url_for("auth.login"))
 
     @app.route("/dashboard")
     @login_required
     def dashboard():
+        if current_user.role != "admin":
+            return redirect(url_for("attendance.index"))
+
         user_count = db.session.scalar(db.select(db.func.count(User.id))) or 0
         socio_count = db.session.scalar(db.select(db.func.count(Socio.id))) or 0
         activity_count = db.session.scalar(db.select(db.func.count(Activity.id))) or 0
