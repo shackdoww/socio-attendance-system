@@ -21,14 +21,16 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
 
-    from models import Activity, Socio, Transaction, User
+    from models import User
     from routes.auth import auth_bp
+    from routes.admin import admin_bp
 
     @login_manager.user_loader
     def load_user(user_id):
         return db.session.get(User, int(user_id))
 
     app.register_blueprint(auth_bp)
+    app.register_blueprint(admin_bp)
 
     @app.route("/")
     def index():
@@ -39,22 +41,7 @@ def create_app():
     @app.route("/dashboard")
     @login_required
     def dashboard():
-        user_count = db.session.scalar(db.select(db.func.count()).select_from(User))
-        socio_count = db.session.scalar(db.select(db.func.count()).select_from(Socio))
-        activity_count = db.session.scalar(db.select(db.func.count()).select_from(Activity))
-        transaction_count = db.session.scalar(db.select(db.func.count()).select_from(Transaction))
-        recent_users = db.session.scalars(
-            db.select(User).order_by(User.created_at.desc()).limit(8)
-        ).all()
-
-        return render_template(
-            "dashboard.html",
-            user_count=user_count,
-            socio_count=socio_count,
-            activity_count=activity_count,
-            transaction_count=transaction_count,
-            recent_users=recent_users,
-        )
+        return render_template("dashboard.html")
 
     @app.route("/health")
     def health():
