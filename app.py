@@ -1,4 +1,4 @@
-from flask import Flask, redirect, render_template, url_for
+from flask import Flask, abort, redirect, render_template, url_for
 from flask_login import LoginManager, current_user, login_required
 from dotenv import load_dotenv
 import os
@@ -49,7 +49,7 @@ def create_app():
     @login_required
     def dashboard():
         if current_user.role != "admin":
-            return redirect(url_for("attendance.index"))
+            abort(403)
 
         user_count = db.session.scalar(db.select(db.func.count(User.id))) or 0
         socio_count = db.session.scalar(db.select(db.func.count(Socio.id))) or 0
