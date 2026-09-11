@@ -2,6 +2,7 @@ from collections import OrderedDict
 
 from flask import Blueprint, render_template, request
 from flask_login import current_user, login_required
+from sqlalchemy import or_
 
 from extensions import db
 from models import Socio, User
@@ -38,7 +39,10 @@ def index():
     query = db.select(User).where(User.role != "admin")
 
     if current_user.role != "admin":
-        query = query.where(User.socio_id == current_user.socio_id)
+        if current_user.socio_id is None:
+            query = query.where(User.id == -1)
+        else:
+            query = query.where(User.socio_id == current_user.socio_id)
     elif selected_socio:
         try:
             query = query.where(User.socio_id == int(selected_socio))
@@ -48,7 +52,7 @@ def index():
     if search:
         term = f"%{search}%"
         query = query.where(
-            db.or_(
+            or_(
                 User.full_name.ilike(term),
                 User.username.ilike(term),
                 User.email.ilike(term),
