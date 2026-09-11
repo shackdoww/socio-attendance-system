@@ -25,6 +25,9 @@ OFFICER_ROLES = [
     ("treasurer", "Treasurer"),
 ]
 
+SOCIO_ROLES = {"socio_moderator", "president", "vice_president", "secretary", "treasurer", "member"}
+LEADERSHIP_ROLES = {"socio_moderator", "president", "vice_president", "secretary", "treasurer"}
+
 
 def admin_required(view):
     from functools import wraps
@@ -175,7 +178,10 @@ def assign_socio_roles(socio_id):
         if user_id is None:
             continue
 
-        user = db.session.get(User, int(user_id))
+        try:
+            user = db.session.get(User, int(user_id))
+        except (TypeError, ValueError):
+            user = None
         if not user or not user.is_active or user.role != role:
             flash("One or more selected users are invalid for their assigned position.", "error")
             return redirect(url_for("admin.socio_detail", socio_id=socio.id))
@@ -211,7 +217,8 @@ def create_user():
     socio_id = request.form.get("socio_id") or None
 
     if role not in ALLOWED_ROLES:
-        role = "member"
+        flash("Invalid role selected.", "error")
+        return redirect(url_for("admin.users"))
 
     if not username or not email or not full_name or not password:
         flash("All required fields must be filled in.", "error")
@@ -225,13 +232,24 @@ def create_user():
         flash("That email already exists.", "error")
         return redirect(url_for("admin.users"))
 
+    if role == "admin" and socio_id:
+        flash("Administrator accounts cannot be assigned to a socio.", "error")
+        return redirect(url_for("admin.users"))
+
+    if role in SOCIO_ROLES and not socio_id:
+        flash("A socio must be selected for this role.", "error")
+        return redirect(url_for("admin.users"))
+
     if socio_id:
-        socio = db.session.get(Socio, int(socio_id))
+        try:
+            socio = db.session.get(Socio, int(socio_id))
+        except (TypeError, ValueError):
+            socio = None
         if not socio:
             flash("The selected socio does not exist.", "error")
             return redirect(url_for("admin.users"))
 
-        if role in {"socio_moderator", "president", "vice_president", "secretary", "treasurer"}:
+        if role in LEADERSHIP_ROLES:
             existing_position = db.session.execute(
                 db.select(User).where(User.socio_id == socio.id, User.role == role)
             ).scalar_one_or_none()
