@@ -106,6 +106,7 @@ def index():
         selected_date = date.fromisoformat(selected_date_text)
     except ValueError:
         selected_date = date.today()
+    is_today = selected_date == date.today()
 
     if current_user.role == "admin":
         socios = db.session.execute(db.select(Socio).order_by(Socio.name)).scalars().all()
@@ -120,10 +121,11 @@ def index():
             sessions=sessions,
             socios=socios,
             selected_date=selected_date,
+            is_today=is_today,
         )
 
     if not current_user.socio_id:
-        return render_template("attendance/index.html", session=None, records=[], selected_date=selected_date)
+        return render_template("attendance/index.html", session=None, records=[], selected_date=selected_date, is_today=is_today)
 
     session = ensure_session(selected_date, current_user.socio_id, current_user.id)
     if current_user.role == "socio_moderator":
@@ -137,6 +139,7 @@ def index():
             records=records,
             selected_date=selected_date,
             pending_count=pending_count,
+            is_today=is_today,
         )
 
     record = get_current_user_record(session)
@@ -145,6 +148,7 @@ def index():
         session=session,
         record=record,
         selected_date=selected_date,
+        is_today=is_today,
     )
 
 
@@ -190,13 +194,9 @@ def self_submit(session_id):
         flash("Please use Time In before submitting this attendance status.", "error")
         return redirect(url_for("attendance.index"))
 
-    if status == "excused":
-        record.duration_minutes = calculate_duration(session.session_date, record.time_in, record.time_out)
-    else:
-        record.duration_minutes = calculate_duration(session.session_date, record.time_in, record.time_out)
-
     record.status = status
     record.notes = notes or None
+    record.duration_minutes = calculate_duration(session.session_date, record.time_in, record.time_out)
     record.approval_status = "pending"
     record.approved_by = None
     record.approved_at = None
@@ -315,9 +315,9 @@ def record(session_id, record_id):
 def approve(session_id, record_id):
     session = db.get_or_404(AttendanceSession, session_id)
     record = db.get_or_404(AttendanceLog, record_id)
-    if record.session_id != session.id or current_user.role != "admin" and current_user.socio_id != session.socio_id:
+    if record.session_id != session.id or (current_user.role != "admin" and current_user.socio_id != session.socio_id):
         return "Forbidden", 403
-    if current_user.role == "socio_moderator" and record.approval_status != "pending":
+    if record.approval_status != "pending":
         flash("Only pending attendance can be approved.", "error")
         return redirect(url_for("attendance.manage", session_id=session.id))
     if session.no_attendance:
@@ -338,7 +338,7 @@ def approve(session_id, record_id):
 def reject(session_id, record_id):
     session = db.get_or_404(AttendanceSession, session_id)
     record = db.get_or_404(AttendanceLog, record_id)
-    if record.session_id != session.id or current_user.role != "admin" and current_user.socio_id != session.socio_id:
+    if record.session_id != session.id or (current_user.role != "admin" and current_user.socio_id != session.socio_id):
         return "Forbidden", 403
     if record.approval_status != "pending":
         flash("Only pending attendance can be rejected.", "error")
