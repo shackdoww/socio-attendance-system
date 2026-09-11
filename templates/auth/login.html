@@ -3,23 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | Notre Dame of Marbel University</title>
+    <meta name="theme-color" content="#063b28">
+    <title>Sign In | Notre Dame of Marbel University</title>
+    <link rel="icon" type="image/png" href="https://static.wixstatic.com/media/9cf2f4_4569d3d3eb9c40a1ad6afd3f04e67cd9~mv2.png/v1/fill/w_256%2Ch_256%2Cal_c%2Cq_90%2Cusm_0.66_1.00_0.01%2Cenc_avif%2Cquality_auto/NDMU_Logo.png">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/ndmu-theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
 </head>
 <body>
     <main class="auth-container">
-        <section class="auth-card">
-            <h1>Notre Dame of Marbel University</h1>
-            <p>Socio Attendance System · Sign in to continue.</p>
-            {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="alert {{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
-            <form method="post">
-                <label for="username">Username</label>
-                <input id="username" name="username" type="text" required autocomplete="username">
-                <label for="password">Password</label>
-                <input id="password" name="password" type="password" required autocomplete="current-password">
-                <button type="submit">Sign In</button>
-            </form>
+        <section class="auth-card" aria-label="Notre Dame of Marbel University sign in">
+            <div class="login-panel-logo" aria-hidden="true"></div>
+            <div class="login-content">
+                <div class="login-kicker">STUDENT ORGANIZATION MANAGEMENT</div>
+                <div class="login-title-row">
+                    <img class="login-seal" src="https://static.wixstatic.com/media/9cf2f4_4569d3d3eb9c40a1ad6afd3f04e67cd9~mv2.png/v1/fill/w_256%2Ch_256%2Cal_c%2Cq_90%2Cusm_0.66_1.00_0.01%2Cenc_avif%2Cquality_auto/NDMU_Logo.png" alt="Notre Dame of Marbel University seal">
+                    <div>
+                        <div class="login-university-short">NDMU</div>
+                        <div class="login-university-sub">Notre Dame of Marbel University</div>
+                    </div>
+                </div>
+                <h1>Welcome back.</h1>
+                <p class="login-description">Sign in to access the Socio Attendance System.</p>
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% for category, message in messages %}
+                        <div class="alert {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endwith %}
+                <form method="post">
+                    <label for="username">Username</label>
+                    <input id="username" name="username" type="text" required autocomplete="username" placeholder="Enter your username">
+                    <label for="password">Password</label>
+                    <input id="password" name="password" type="password" required autocomplete="current-password" placeholder="Enter your password">
+                    <button type="submit">Sign In <span aria-hidden="true">→</span></button>
+                </form>
+                <p class="login-footer">Notre Dame of Marbel University · Socio Attendance System</p>
+            </div>
         </section>
     </main>
 </body>
