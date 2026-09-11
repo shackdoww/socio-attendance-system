@@ -7,7 +7,6 @@ os.environ["SECRET_KEY"] = "test-secret-key"
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 os.environ["FLASK_ENV"] = "testing"
 os.environ["RATELIMIT_STORAGE_URI"] = "memory://"
-os.environ["SESSION_PROTECTION"] = "none"
 
 from app import create_app
 from extensions import db
@@ -36,18 +35,25 @@ def create_user(role="member", active=True, socio_id=None):
     return user
 
 
-def authenticate(client, user):
-    with client.session_transaction() as session:
-        session["_user_id"] = str(user.id)
-        session["_fresh"] = True
-
-
 def csrf_token(client, path):
     page = client.get(path)
     assert page.status_code == 200
     match = re.search(r'name="csrf_token" value="([^"]+)"', page.get_data(as_text=True))
     assert match
     return match.group(1)
+
+
+def authenticate(client, user):
+    token = csrf_token(client, "/login")
+    response = client.post(
+        "/login",
+        data={
+            "csrf_token": token,
+            "username": user.username,
+            "password": "TestPass123!",
+        },
+    )
+    assert response.status_code == 302
 
 
 def test_login_page_contains_csrf_token():
@@ -111,7 +117,9 @@ def test_inactive_user_is_not_loaded():
     with app.app_context():
         user = create_user(active=False)
         with app.test_client() as client:
-            authenticate(client, user)
+            with client.session_transaction() as session:
+                session["_user_id"] = str(user.id)
+                session["_fresh"] = True
             response = client.get("/attendance")
             assert response.status_code == 302
             assert "/login" in response.headers["Location"]
