@@ -1,0 +1,229 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+.auth-container {
+    min-height: 100vh;
+    min-height: 100svh;
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 12% 18%, rgba(31, 122, 76, .13), transparent 28rem),
+        radial-gradient(circle at 88% 12%, rgba(242, 198, 47, .18), transparent 25rem),
+        linear-gradient(135deg, #f2f8f3 0%, #fbfcf9 52%, #f8f4e7 100%) !important;
+    font-family: 'Manrope', 'Plus Jakarta Sans', Arial, sans-serif !important;
+    color: #123d2b;
+}
+
+.auth-container::before,
+.auth-container::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.auth-container::before {
+    width: 520px;
+    height: 520px;
+    left: -300px;
+    bottom: -300px;
+    border: 90px solid rgba(11, 86, 56, .055);
+}
+
+.auth-container::after {
+    width: 420px;
+    height: 420px;
+    right: -270px;
+    top: -260px;
+    border: 70px solid rgba(242, 198, 47, .08);
+}
+
+.auth-card {
+    width: min(940px, 100%);
+    min-height: 570px;
+    padding: 0 !important;
+    display: grid;
+    grid-template-columns: minmax(290px, .9fr) minmax(360px, 1.1fr);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(11, 86, 56, .12) !important;
+    border-radius: 30px !important;
+    background: rgba(255, 255, 255, .92) !important;
+    box-shadow: 0 28px 80px rgba(7, 59, 40, .14), 0 5px 20px rgba(7, 59, 40, .05) !important;
+    backdrop-filter: blur(18px);
+    animation: loginCardIn .55s cubic-bezier(.2,.8,.2,1) both;
+}
+
+.auth-card::before {
+    content: '' !important;
+    grid-column: 1;
+    grid-row: 1;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    background:
+        linear-gradient(145deg, rgba(4, 55, 37, .97), rgba(8, 91, 59, .93)),
+        url('https://static.wixstatic.com/media/9cf2f4_4569d3d3eb9c40a1ad6afd3f04e67cd9~mv2.png/v1/fill/w_980%2Ch_980%2Cal_c%2Cq_90%2Cusm_0.66_1.00_0.01%2Cenc_avif%2Cquality_auto/NDMU_Logo.png') center/220px no-repeat !important;
+    box-shadow: none !important;
+    position: relative;
+}
+
+.auth-card::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 44%;
+    background:
+        radial-gradient(circle at 50% 38%, rgba(242,198,47,.16), transparent 115px),
+        radial-gradient(circle at 18% 88%, rgba(255,255,255,.08), transparent 180px);
+    pointer-events: none;
+}
+
+.auth-card h1,
+.auth-card > p,
+.auth-card form,
+.auth-card .alert {
+    grid-column: 2;
+    position: relative;
+    z-index: 3;
+}
+
+.auth-card h1 {
+    margin: 78px 64px 10px !important;
+    color: #103d2b !important;
+    font-family: 'Plus Jakarta Sans', 'Manrope', Arial, sans-serif !important;
+    font-size: clamp(25px, 3vw, 34px) !important;
+    font-weight: 800 !important;
+    line-height: 1.12 !important;
+    letter-spacing: -1.2px !important;
+}
+
+.auth-card > p {
+    margin: 0 64px !important;
+    color: #718279 !important;
+    font-size: 13px !important;
+    line-height: 1.6 !important;
+}
+
+.auth-card form {
+    margin: 32px 64px 60px !important;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+
+.auth-card label {
+    margin-top: 8px;
+    color: #315f48 !important;
+    font-family: 'Manrope', sans-serif !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    letter-spacing: .25px;
+}
+
+.auth-card input {
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 14px;
+    border: 1px solid #d8e5d9 !important;
+    border-radius: 12px !important;
+    outline: none;
+    background: #fbfdfb !important;
+    color: #173e2d !important;
+    font-family: 'Manrope', sans-serif !important;
+    font-size: 13px !important;
+    transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+
+.auth-card input:focus {
+    border-color: #5b9a75 !important;
+    box-shadow: 0 0 0 4px rgba(31,122,76,.09) !important;
+    transform: translateY(-1px);
+}
+
+.auth-card button {
+    width: 100%;
+    min-height: 50px;
+    margin-top: 18px;
+    border: 0 !important;
+    border-radius: 12px !important;
+    background: linear-gradient(135deg, #126545, #07472f) !important;
+    color: #fff !important;
+    font-family: 'Manrope', sans-serif !important;
+    font-size: 12px !important;
+    font-weight: 800 !important;
+    letter-spacing: .15px;
+    cursor: pointer;
+    box-shadow: 0 12px 25px rgba(7, 71, 47, .18) !important;
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.auth-card button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 30px rgba(7, 71, 47, .24) !important;
+}
+
+.auth-card button:active {
+    transform: translateY(0);
+}
+
+.auth-card .alert {
+    margin: 18px 64px 0;
+    padding: 11px 13px;
+    border-radius: 11px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 11px;
+}
+
+.auth-card .alert.error {
+    color: #914443;
+    background: #fff2f1;
+    border: 1px solid #f0d5d2;
+}
+
+.auth-card .alert.success {
+    color: #236b45;
+    background: #eef8f0;
+    border: 1px solid #d4e9d8;
+}
+
+@keyframes loginCardIn {
+    from { opacity: 0; transform: translateY(18px) scale(.985); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 760px) {
+    .auth-container { padding: 18px; }
+    .auth-card {
+        min-height: auto;
+        grid-template-columns: 1fr;
+        border-radius: 24px !important;
+    }
+    .auth-card::before {
+        grid-column: 1;
+        grid-row: 1;
+        min-height: 205px;
+        background-size: 150px !important;
+    }
+    .auth-card::after { width: 100%; height: 205px; bottom: auto; }
+    .auth-card h1,
+    .auth-card > p,
+    .auth-card form,
+    .auth-card .alert { grid-column: 1; }
+    .auth-card h1 { margin: 34px 28px 9px !important; font-size: 25px !important; }
+    .auth-card > p { margin: 0 28px !important; }
+    .auth-card form { margin: 25px 28px 34px !important; }
+    .auth-card .alert { margin: 20px 28px 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-card,
+    .auth-card input,
+    .auth-card button { animation: none !important; transition: none !important; }
+}
