@@ -10,7 +10,9 @@ auth_bp = Blueprint("auth", __name__)
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("dashboard"))
+        if current_user.role == "admin":
+            return redirect(url_for("dashboard"))
+        return redirect(url_for("attendance.index"))
 
     if request.method == "POST":
         username = request.form.get("username", "").strip()
@@ -21,7 +23,9 @@ def login():
 
         if user and user.is_active and user.check_password(password):
             login_user(user)
-            return redirect(url_for("dashboard"))
+            if user.role == "admin":
+                return redirect(url_for("dashboard"))
+            return redirect(url_for("attendance.index"))
 
         flash("Invalid username or password.", "error")
 
