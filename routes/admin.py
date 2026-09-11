@@ -8,6 +8,24 @@ from models import Socio, User
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 
+ALLOWED_ROLES = {
+    "admin",
+    "socio_moderator",
+    "president",
+    "vice_president",
+    "secretary",
+    "treasurer",
+    "member",
+}
+
+OFFICER_ROLES = [
+    ("president", "President"),
+    ("vice_president", "Vice President"),
+    ("secretary", "Secretary"),
+    ("treasurer", "Treasurer"),
+]
+
+
 def admin_required(view):
     from functools import wraps
 
@@ -42,6 +60,47 @@ def users():
     return render_template("admin/users.html", users=users, socios=socios, search=search)
 
 
+@admin_bp.route("/socios")
+@admin_required
+def socios():
+    socios = db.session.execute(db.select(Socio).order_by(Socio.name)).scalars().all()
+    return render_template("admin/socios.html", socios=socios)
+
+
+@admin_bp.route("/socios/<int:socio_id>")
+@admin_required
+def socio_detail(socio_id):
+    socio = db.get_or_404(Socio, socio_id)
+    members = db.session.execute(
+        db.select(User).where(User.socio_id == socio.id).order_by(User.role, User.full_name)
+    ).scalars().all()
+
+    role_users = {}
+    for role in ["socio_moderator", "president", "vice_president", "secretary", "treasurer"]:
+        role_users[role] = db.session.execute(
+            db.select(User)
+            .where(User.role == role, User.is_active.is_(True))
+            .order_by(User.full_name)
+        ).scalars().all()
+
+    assignments = {
+        "socio_moderator": next((u for u in members if u.role == "socio_moderator"), None),
+        "president": next((u for u in members if u.role == "president"), None),
+        "vice_president": next((u for u in members if u.role == "vice_president"), None),
+        "secretary": next((u for u in members if u.role == "secretary"), None),
+        "treasurer": next((u for u in members if u.role == "treasurer"), None),
+    }
+
+    return render_template(
+        "admin/socio_detail.html",
+        socio=socio,
+        members=members,
+        role_users=role_users,
+        assignments=assignments,
+        officer_roles=OFFICER_ROLES,
+    )
+
+
 @admin_bp.route("/socios/create", methods=["POST"])
 @admin_required
 def create_socio():
@@ -68,6 +127,79 @@ def create_socio():
     return redirect(url_for("admin.users"))
 
 
+@admin_bp.route("/socios/<int:socio_id>/update", methods=["POST"])
+@admin_required
+def update_socio(socio_id):
+    socio = db.get_or_404(Socio, socio_id)
+    name = request.form.get("name", "").strip()
+    description = request.form.get("description", "").strip()
+
+    if not name:
+        flash("Socio group name is required.", "error")
+        return redirect(url_for("admin.socio_detail", socio_id=socio.id))
+
+    duplicate = db.session.execute(
+        db.select(Socio).where(Socio.name.ilike(name), Socio.id != socio.id)
+    ).scalar_one_or_none()
+    if duplicate:
+        flash("Another socio group already uses that name.", "error")
+        return redirect(url_for("admin.socio_detail", socio_id=socio.id))
+
+    socio.name = name
+    socio.description = description or None
+    db.session.commit()
+
+    flash(f"Socio group '{name}' updated successfully.", "success")
+    return redirect(url_for("admin.socio_detail", socio_id=socio.id))
+
+
+@admin_bp.route("/socios/<int:socio_id>/assign", methods=["POST"])
+@admin_required
+def assign_socio_roles(socio_id):
+    socio = db.get_or_404(Socio, socio_id)
+
+    assignments = {
+        "socio_moderator": request.form.get("socio_moderator_id") or None,
+        "president": request.form.get("president_id") or None,
+        "vice_president": request.form.get("vice_president_id") or None,
+        "secretary": request.form.get("secretary_id") or None,
+        "treasurer": request.form.get("treasurer_id") or None,
+    }
+
+    selected_ids = [int(value) for value in assignments.values() if value]
+    if len(selected_ids) != len(set(selected_ids)):
+        flash("A person cannot hold two officer positions in the same socio.", "error")
+        return redirect(url_for("admin.socio_detail", socio_id=socio.id))
+
+    for role, user_id in assignments.items():
+        if user_id is None:
+            continue
+
+        user = db.session.get(User, int(user_id))
+        if not user or not user.is_active or user.role != role:
+            flash("One or more selected users are invalid for their assigned position.", "error")
+            return redirect(url_for("admin.socio_detail", socio_id=socio.id))
+
+    managed_roles = ["socio_moderator", "president", "vice_president", "secretary", "treasurer"]
+    for role in managed_roles:
+        users_in_role = db.session.execute(
+            db.select(User).where(User.socio_id == socio.id, User.role == role)
+        ).scalars().all()
+        selected_id = assignments[role]
+        for user in users_in_role:
+            if selected_id is None or user.id != int(selected_id):
+                user.socio_id = None
+
+    for role, user_id in assignments.items():
+        if user_id:
+            user = db.session.get(User, int(user_id))
+            user.socio_id = socio.id
+
+    db.session.commit()
+    flash(f"Leadership assignments for '{socio.name}' updated successfully.", "success")
+    return redirect(url_for("admin.socio_detail", socio_id=socio.id))
+
+
 @admin_bp.route("/users/create", methods=["POST"])
 @admin_required
 def create_user():
@@ -78,8 +210,7 @@ def create_user():
     role = request.form.get("role", "member")
     socio_id = request.form.get("socio_id") or None
 
-    allowed_roles = {"admin", "socio_moderator", "president", "vice_president", "secretary", "treasurer", "member"}
-    if role not in allowed_roles:
+    if role not in ALLOWED_ROLES:
         role = "member"
 
     if not username or not email or not full_name or not password:
@@ -93,6 +224,20 @@ def create_user():
     if db.session.execute(db.select(User).where(User.email == email)).scalar_one_or_none():
         flash("That email already exists.", "error")
         return redirect(url_for("admin.users"))
+
+    if socio_id:
+        socio = db.session.get(Socio, int(socio_id))
+        if not socio:
+            flash("The selected socio does not exist.", "error")
+            return redirect(url_for("admin.users"))
+
+        if role in {"socio_moderator", "president", "vice_president", "secretary", "treasurer"}:
+            existing_position = db.session.execute(
+                db.select(User).where(User.socio_id == socio.id, User.role == role)
+            ).scalar_one_or_none()
+            if existing_position:
+                flash(f"That socio already has a {role.replace('_', ' ').title()}.", "error")
+                return redirect(url_for("admin.users"))
 
     user = User(
         username=username,
