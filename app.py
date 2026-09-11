@@ -1,15 +1,12 @@
 from flask import Flask, abort, redirect, render_template, url_for
 from flask_login import LoginManager, current_user, login_required
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFError, CSRFProtect, generate_csrf
 from dotenv import load_dotenv
 import os
 import re
 from sqlalchemy import inspect, text
 
-from extensions import db
+from extensions import db, limiter, migrate
 
 load_dotenv()
 
@@ -17,8 +14,6 @@ login_manager = LoginManager()
 login_manager.login_view = "auth.login"
 login_manager.session_protection = "strong"
 csrf = CSRFProtect()
-migrate = Migrate()
-limiter = Limiter(key_func=get_remote_address)
 
 
 def create_app():
