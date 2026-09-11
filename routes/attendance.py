@@ -10,6 +10,8 @@ from models import AttendanceLog, AttendanceSession, Socio, User
 
 attendance_bp = Blueprint("attendance", __name__)
 MANAGER_ROLES = {"admin", "socio_moderator", "president", "vice_president", "secretary"}
+NON_ATTENDANCE_ROLES = {"admin", "socio_moderator"}
+ATTENDANCE_STATUSES = {"present", "practicing", "late", "excused", "absent"}
 
 
 def attendance_manager_required(view):
@@ -29,6 +31,21 @@ def get_session_for_date(session_date, socio_id):
     )).scalar_one_or_none()
 
 
+def attendance_member_query(socio_id):
+    return db.select(User).where(
+        User.socio_id == socio_id,
+        User.is_active.is_(True),
+        User.role.notin_(NON_ATTENDANCE_ROLES),
+    ).order_by(User.full_name)
+
+
+def attendance_records_query(session_id):
+    return db.select(AttendanceLog).where(
+        AttendanceLog.session_id == session_id,
+        User.role.notin_(NON_ATTENDANCE_ROLES),
+    ).join(User).order_by(User.full_name)
+
+
 def ensure_session(session_date, socio_id, created_by):
     session = get_session_for_date(session_date, socio_id)
     if session:
@@ -41,9 +58,7 @@ def ensure_session(session_date, socio_id, created_by):
     )
     db.session.add(session)
     db.session.flush()
-    members = db.session.execute(db.select(User).where(
-        User.socio_id == socio_id, User.is_active.is_(True)
-    ).order_by(User.full_name)).scalars().all()
+    members = db.session.execute(attendance_member_query(socio_id)).scalars().all()
     for member in members:
         db.session.add(AttendanceLog(session_id=session.id, user_id=member.id, status="absent"))
     db.session.commit()
@@ -78,9 +93,9 @@ def index():
         return render_template("attendance/index.html", session=None, records=[], selected_date=selected_date)
 
     session = ensure_session(selected_date, current_user.socio_id, current_user.id)
-    records = [] if session.no_attendance else db.session.execute(db.select(AttendanceLog).where(
-        AttendanceLog.session_id == session.id
-    ).join(User).order_by(User.full_name)).scalars().all()
+    records = [] if session.no_attendance else db.session.execute(
+        attendance_records_query(session.id)
+    ).scalars().all()
     return render_template("attendance/index.html", session=session, records=records, selected_date=selected_date)
 
 
@@ -90,9 +105,9 @@ def manage(session_id):
     session = db.get_or_404(AttendanceSession, session_id)
     if current_user.role != "admin" and current_user.socio_id != session.socio_id:
         return "Forbidden", 403
-    records = [] if session.no_attendance else db.session.execute(db.select(AttendanceLog).where(
-        AttendanceLog.session_id == session.id
-    ).join(User).order_by(User.full_name)).scalars().all()
+    records = [] if session.no_attendance else db.session.execute(
+        attendance_records_query(session.id)
+    ).scalars().all()
     return render_template("attendance/manage.html", session=session, records=records)
 
 
@@ -103,12 +118,14 @@ def record(session_id, record_id):
     record = db.get_or_404(AttendanceLog, record_id)
     if record.session_id != session.id or (current_user.role != "admin" and current_user.socio_id != session.socio_id):
         return "Forbidden", 403
+    if record.user.role in NON_ATTENDANCE_ROLES:
+        return "Forbidden", 403
     if session.no_attendance:
         flash("Attendance is disabled for this date.", "error")
         return redirect(url_for("attendance.manage", session_id=session.id))
 
     status = request.form.get("status", "absent")
-    if status not in {"present", "practicing", "late", "excused", "absent"}:
+    if status not in ATTENDANCE_STATUSES:
         status = "absent"
     time_in_text = request.form.get("time_in", "").strip()
     time_out_text = request.form.get("time_out", "").strip()
@@ -157,7 +174,8 @@ def set_no_attendance(session_id):
 @login_required
 def history():
     query = db.select(AttendanceLog).join(AttendanceSession).join(User).where(
-        AttendanceSession.no_attendance.is_(False)
+        AttendanceSession.no_attendance.is_(False),
+        User.role.notin_(NON_ATTENDANCE_ROLES),
     ).order_by(AttendanceSession.session_date.desc(), User.full_name)
     if current_user.role != "admin":
         query = query.where(AttendanceSession.socio_id == current_user.socio_id)
@@ -169,7 +187,8 @@ def history():
 @login_required
 def reports():
     query = db.select(AttendanceLog).join(AttendanceSession).join(User).where(
-        AttendanceSession.no_attendance.is_(False)
+        AttendanceSession.no_attendance.is_(False),
+        User.role.notin_(NON_ATTENDANCE_ROLES),
     )
     if current_user.role != "admin":
         query = query.where(AttendanceSession.socio_id == current_user.socio_id)
