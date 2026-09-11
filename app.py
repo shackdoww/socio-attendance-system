@@ -100,6 +100,9 @@ def create_app():
                 db.session.execute(text(
                     "ALTER TABLE attendance_logs ADD COLUMN rejection_reason VARCHAR(255)"
                 ))
+            db.session.execute(text(
+                "UPDATE attendance_logs SET status = 'present' WHERE status = 'practicing'"
+            ))
             db.session.commit()
 
         default_socios = [
