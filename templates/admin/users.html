@@ -124,6 +124,22 @@
                     <button class="primary-button" type="submit">Create Account</button>
                 </form>
             </section>
+
+            <section class="panel" id="create-socio">
+                <div class="panel-header">
+                    <div>
+                        <h2>Add Socio Group</h2>
+                        <p>Create a new socio that will immediately appear in the user assignment list.</p>
+                    </div>
+                </div>
+                <form class="user-form" method="post" action="{{ url_for('admin.create_socio') }}">
+                    <div class="form-grid">
+                        <label>Socio group name<input name="name" required maxlength="120" placeholder="e.g. NDMU Chorale"></label>
+                        <label>Description (optional)<input name="description" maxlength="500" placeholder="Brief description of the socio group"></label>
+                    </div>
+                    <button class="primary-button" type="submit">Add Socio Group</button>
+                </form>
+            </section>
         </main>
     </div>
 </body>
