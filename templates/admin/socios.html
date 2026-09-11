@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socio Management | Socio Attendance System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="admin-page">
+    <div class="admin-layout">
+        <aside class="sidebar">
+            <div class="brand">Socio<span>Attend</span></div>
+            <nav>
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('admin.users') }}">Users</a>
+                <a class="active" href="{{ url_for('admin.socios') }}">Socios</a>
+                <a href="#">Attendance</a>
+                <a href="#">Activities</a>
+                <a href="#">Finances</a>
+                <a href="#">Reports</a>
+            </nav>
+            <div class="sidebar-bottom">
+                <div class="admin-mini">{{ current_user.full_name }}<small>Administrator</small></div>
+                <a href="{{ url_for('auth.logout') }}">Log out</a>
+            </div>
+        </aside>
+
+        <main class="admin-main">
+            <header class="content-header">
+                <div>
+                    <p class="eyebrow">Administration</p>
+                    <h1>Socio Management</h1>
+                    <p class="muted">Manage socio groups and their leadership assignments.</p>
+                </div>
+                <a class="primary-button" href="{{ url_for('admin.users') }}#create-socio">+ Add Socio</a>
+            </header>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-stack">
+                        {% for category, message in messages %}
+                            <div class="flash {{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <section class="socio-grid">
+                {% for socio in socios %}
+                <article class="panel socio-card">
+                    <div class="socio-card-top">
+                        <div class="socio-mark">{{ socio.name[:2].upper() }}</div>
+                        <div>
+                            <h2>{{ socio.name }}</h2>
+                            <p>{{ socio.description or 'No description provided.' }}</p>
+                        </div>
+                    </div>
+                    <div class="socio-card-stats">
+                        <div><span>Members</span><strong>{{ socio.users|length }}</strong></div>
+                        <div><span>Activities</span><strong>{{ socio.activities|length }}</strong></div>
+                        <div><span>Transactions</span><strong>{{ socio.transactions|length }}</strong></div>
+                    </div>
+                    <a class="table-action" href="{{ url_for('admin.socio_detail', socio_id=socio.id) }}">Manage Socio →</a>
+                </article>
+                {% else %}
+                <article class="panel empty-state">
+                    <div class="empty-icon">◈</div>
+                    <h3>No socio groups yet</h3>
+                    <p>Create a socio group first, then assign its moderator and officers.</p>
+                </article>
+                {% endfor %}
+            </section>
+        </main>
+    </div>
+</body>
+</html>
