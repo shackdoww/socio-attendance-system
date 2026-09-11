@@ -287,6 +287,79 @@ def create_user():
     return redirect(url_for("admin.users"))
 
 
+@admin_bp.route("/users/<int:user_id>/edit", methods=["GET", "POST"])
+@admin_required
+def edit_user(user_id):
+    user = db.get_or_404(User, user_id)
+    socios = db.session.execute(db.select(Socio).order_by(Socio.name)).scalars().all()
+
+    if request.method == "POST":
+        full_name = request.form.get("full_name", "").strip()
+        email = request.form.get("email", "").strip().lower()
+        role = request.form.get("role", "")
+        socio_id = request.form.get("socio_id") or None
+        password = request.form.get("password", "")
+
+        if not full_name or not email or role not in ALLOWED_ROLES:
+            flash("Full name, email, and a valid role are required.", "error")
+            return redirect(url_for("admin.edit_user", user_id=user.id))
+
+        if user.id == current_user.id and role != "admin":
+            flash("You cannot remove Administrator access from your own account.", "error")
+            return redirect(url_for("admin.edit_user", user_id=user.id))
+
+        duplicate_email = db.session.execute(
+            db.select(User).where(User.email == email, User.id != user.id)
+        ).scalar_one_or_none()
+        if duplicate_email:
+            flash("That email already belongs to another user.", "error")
+            return redirect(url_for("admin.edit_user", user_id=user.id))
+
+        if role == "admin":
+            socio_id = None
+        elif not socio_id:
+            flash("A socio must be selected for this role.", "error")
+            return redirect(url_for("admin.edit_user", user_id=user.id))
+
+        socio = None
+        if socio_id:
+            try:
+                socio = db.session.get(Socio, int(socio_id))
+            except (TypeError, ValueError):
+                socio = None
+            if not socio:
+                flash("The selected socio does not exist.", "error")
+                return redirect(url_for("admin.edit_user", user_id=user.id))
+
+        if role in LEADERSHIP_ROLES and socio:
+            existing_position = db.session.execute(
+                db.select(User).where(
+                    User.socio_id == socio.id,
+                    User.role == role,
+                    User.id != user.id,
+                )
+            ).scalar_one_or_none()
+            if existing_position:
+                flash(f"That socio already has a {role.replace('_', ' ').title()}.", "error")
+                return redirect(url_for("admin.edit_user", user_id=user.id))
+
+        if password and len(password) < 8:
+            flash("Password must be at least 8 characters long.", "error")
+            return redirect(url_for("admin.edit_user", user_id=user.id))
+
+        user.full_name = full_name
+        user.email = email
+        user.role = role
+        user.socio_id = int(socio_id) if socio_id else None
+        if password:
+            user.set_password(password)
+        db.session.commit()
+        flash(f"User '{user.username}' updated successfully.", "success")
+        return redirect(url_for("admin.users"))
+
+    return render_template("admin/user_edit.html", user=user, socios=socios, allowed_roles=ALLOWED_ROLES)
+
+
 @admin_bp.route("/users/<int:user_id>/toggle", methods=["POST"])
 @admin_required
 def toggle_user(user_id):
