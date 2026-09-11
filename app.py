@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, redirect, render_template, url_for
 from flask_login import LoginManager, current_user, login_required
 from dotenv import load_dotenv
 import os
