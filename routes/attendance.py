@@ -180,7 +180,6 @@ def self_submit(session_id):
     if record is None:
         record = AttendanceLog(session_id=session.id, user_id=current_user.id, status="present")
         db.session.add(record)
-
     if record.approval_status == "approved":
         flash("Your attendance has already been approved and cannot be edited.", "error")
         return redirect(url_for("attendance.index"))
@@ -189,7 +188,6 @@ def self_submit(session_id):
     if status not in SELF_STATUSES:
         status = "present"
     notes = request.form.get("notes", "").strip()
-
     if status in {"present", "late"} and not record.time_in:
         flash("Please use Time In before submitting this attendance status.", "error")
         return redirect(url_for("attendance.index"))
@@ -323,6 +321,9 @@ def approve(session_id, record_id):
     if session.no_attendance:
         flash("Attendance is disabled for this date.", "error")
         return redirect(url_for("attendance.manage", session_id=session.id))
+    if record.status in {"present", "late"} and not record.time_out:
+        flash("This attendance cannot be approved until the member records Time Out.", "error")
+        return redirect(url_for("attendance.manage", session_id=session.id))
 
     record.approval_status = "approved"
     record.approved_by = current_user.id
@@ -373,7 +374,9 @@ def history():
         AttendanceSession.no_attendance.is_(False),
         User.role.notin_(NON_ATTENDANCE_ROLES),
     ).order_by(AttendanceSession.session_date.desc(), User.full_name)
-    if current_user.role != "admin":
+    if current_user.role == "socio_moderator":
+        query = query.where(AttendanceSession.socio_id == current_user.socio_id)
+    elif current_user.role != "admin":
         query = query.where(AttendanceLog.user_id == current_user.id)
     records = db.session.execute(query.limit(1000)).scalars().all()
     return render_template("attendance/history.html", records=records)
@@ -387,7 +390,9 @@ def reports():
         User.role.notin_(NON_ATTENDANCE_ROLES),
         AttendanceLog.approval_status.in_(["approved", "not_required"]),
     )
-    if current_user.role != "admin":
+    if current_user.role == "socio_moderator":
+        query = query.where(AttendanceSession.socio_id == current_user.socio_id)
+    elif current_user.role != "admin":
         query = query.where(AttendanceLog.user_id == current_user.id)
     records = db.session.execute(query).scalars().all()
     stats = {}
