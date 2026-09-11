@@ -115,14 +115,8 @@
                         <label>Socio
                             <select name="socio_id">
                                 <option value="">No socio assigned</option>
-                                <option value="rondalla">NDMU Rondalla Ensemble</option>
-                                <option value="symphonic_band">NDMU Symphonic Band</option>
-                                <option value="tambuli_singers">NDMU Tambuli Singers</option>
-                                <option value="kariktan_dancers">NDMU Kariktan Dancers</option>
                                 {% for socio in socios %}
-                                    {% if socio.name not in ["NDMU Rondalla Ensemble", "NDMU Symphonic Band", "NDMU Tambuli Singers", "NDMU Kariktan Dancers"] %}
-                                        <option value="{{ socio.id }}">{{ socio.name }}</option>
-                                    {% endif %}
+                                    <option value="{{ socio.id }}">{{ socio.name }}</option>
                                 {% endfor %}
                             </select>
                         </label>
