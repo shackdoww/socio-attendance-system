@@ -11,8 +11,20 @@
     <main class="dashboard-main">
         <header class="topbar"><div><p class="eyebrow">ATTENDANCE MANAGEMENT</p><h1>{{ session.socio.name }}</h1><p class="welcome-text">{{ session.session_date.strftime('%A, %B %d, %Y') }} · Regular Attendance</p></div></header>
         {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
+        {% if current_user.role == 'admin' %}
+        <section class="panel no-attendance-panel"><div class="panel-header"><div><h2>Attendance Day Control</h2><p>Use this for holidays, special days, or dates when the socio does not need to log attendance.</p></div></div>
+            <form method="post" action="{{ url_for('attendance.set_no_attendance', session_id=session.id) }}" class="no-attendance-form">
+                <label class="checkbox-row"><input type="checkbox" name="no_attendance" {% if session.no_attendance %}checked{% endif %}> <span><strong>No attendance for this date</strong><small>Members will not receive attendance records for this day.</small></span></label>
+                <input type="text" name="reason" value="{{ session.no_attendance_reason or '' }}" placeholder="Reason, e.g. Holiday or special school event">
+                <button class="button" type="submit">Save Day Setting</button>
+            </form>
+        </section>
+        {% endif %}
+        {% if session.no_attendance %}
+        <section class="panel empty-state"><div class="empty-icon">—</div><h3>No Attendance</h3><p>This date has been excluded from attendance logging.</p>{% if session.no_attendance_reason %}<p class="muted">Reason: {{ session.no_attendance_reason }}</p>{% endif %}</section>
+        {% else %}
         <section class="stats-grid">
-            <article class="stat-card"><div class="stat-icon users-icon">♙</div><div><span>Members</span><strong>{{ records|length }}</strong></div><small>Active members in this session</small></article>
+            <article class="stat-card"><div class="stat-icon users-icon">♙</div><div><span>Members</span><strong>{{ records|length }}</strong></div><small>Active members</small></article>
             <article class="stat-card"><div class="stat-icon activity-icon">✓</div><div><span>Attended</span><strong>{{ records|selectattr('status','in',['present','practicing','late'])|list|length }}</strong></div><small>Present, practicing or late</small></article>
             <article class="stat-card"><div class="stat-icon socios-icon">◷</div><div><span>Practicing</span><strong>{{ records|selectattr('status','equalto','practicing')|list|length }}</strong></div><small>Marked as practicing</small></article>
             <article class="stat-card"><div class="stat-icon finance-icon">!</div><div><span>Absent</span><strong>{{ records|selectattr('status','equalto','absent')|list|length }}</strong></div><small>Not recorded as attending</small></article>
@@ -22,6 +34,7 @@
             {% for record in records %}<tr><form method="post" action="{{ url_for('attendance.record', session_id=session.id, record_id=record.id) }}"><td><strong>{{ record.user.full_name }}</strong><br><small>@{{ record.user.username }}</small></td><td><select name="status"><option value="present" {% if record.status=='present' %}selected{% endif %}>Present</option><option value="practicing" {% if record.status=='practicing' %}selected{% endif %}>Practicing</option><option value="late" {% if record.status=='late' %}selected{% endif %}>Late</option><option value="excused" {% if record.status=='excused' %}selected{% endif %}>Excused</option><option value="absent" {% if record.status=='absent' %}selected{% endif %}>Absent</option></select></td><td><input type="time" name="time_in" value="{{ record.time_in.strftime('%H:%M') if record.time_in else '' }}"></td><td><input type="time" name="time_out" value="{{ record.time_out.strftime('%H:%M') if record.time_out else '' }}"></td><td>{% if record.duration_minutes is not none %}{{ record.duration_minutes // 60 }}h {{ record.duration_minutes % 60 }}m{% else %}—{% endif %}</td><td><input type="text" name="notes" value="{{ record.notes or '' }}" placeholder="Optional"></td><td><button class="button" type="submit">Save</button></td></form></tr>{% endfor %}
             </tbody></table></div>
         </section>
+        {% endif %}
     </main>
 </div>
 </body>
