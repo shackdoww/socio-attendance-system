@@ -74,6 +74,8 @@ class AttendanceSession(db.Model):
     socio_id = db.Column(db.Integer, db.ForeignKey("socios.id"), nullable=False)
     session_date = db.Column(db.Date, nullable=False)
     session_type = db.Column(db.String(20), nullable=False, default="regular")
+    no_attendance = db.Column(db.Boolean, nullable=False, default=False)
+    no_attendance_reason = db.Column(db.String(255))
     created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     socio = db.relationship("Socio", back_populates="attendance_sessions")
