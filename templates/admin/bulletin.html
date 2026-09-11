@@ -6,26 +6,26 @@
     <title>Manage Bulletin | Socio Attendance System</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
-        .form-panel, .post-panel { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 22px; margin-bottom: 20px; }
-        .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 15px; }
-        .field { display: flex; flex-direction: column; gap: 7px; }
-        .field.full { grid-column: 1 / -1; }
-        .field label { font-size: 13px; font-weight: 700; color: #374151; }
-        .field input, .field textarea, .field select { width: 100%; box-sizing: border-box; padding: 11px 12px; border: 1px solid #d1d5db; border-radius: 9px; font: inherit; }
-        .field textarea { min-height: 120px; resize: vertical; }
-        .button-row { display: flex; gap: 10px; margin-top: 16px; }
-        .btn { border: 0; border-radius: 9px; padding: 10px 15px; cursor: pointer; font-weight: 700; }
-        .btn-primary { background: #111827; color: #fff; }
-        .btn-danger { background: #fee2e2; color: #991b1b; }
-        .btn-edit { background: #e5e7eb; color: #111827; }
+        .form-panel, .post-panel { background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:22px; margin-bottom:20px; }
+        .form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px; }
+        .field { display:flex; flex-direction:column; gap:7px; }
+        .field.full { grid-column:1 / -1; }
+        .field label { font-size:13px; font-weight:700; color:#374151; }
+        .field input,.field textarea,.field select { width:100%; box-sizing:border-box; padding:11px 12px; border:1px solid #d1d5db; border-radius:9px; font:inherit; }
+        .field textarea { min-height:120px; resize:vertical; }
+        .button-row { display:flex; gap:10px; margin-top:16px; }
+        .btn { border:0; border-radius:9px; padding:10px 15px; cursor:pointer; font-weight:700; }
+        .btn-primary { background:#111827; color:#fff; }
+        .btn-danger { background:#fee2e2; color:#991b1b; }
+        .btn-edit { background:#e5e7eb; color:#111827; }
         .post-header { display:flex; justify-content:space-between; gap:15px; align-items:flex-start; }
         .post-header h2 { margin:0 0 8px; }
-        .post-meta { color:#6b7280; font-size:13px; }
+        .post-meta { color:#6b7280; font-size:13px; margin-top:4px; }
         .post-content { white-space:pre-line; line-height:1.6; margin-top:15px; }
         .post-actions { display:flex; gap:8px; }
         .edit-form { margin-top:18px; padding-top:18px; border-top:1px solid #e5e7eb; }
         .hidden { display:none; }
-        @media (max-width: 700px) { .form-grid { grid-template-columns:1fr; } .field.full { grid-column:auto; } .post-header { flex-direction:column; } }
+        @media (max-width:700px) { .form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.post-header{flex-direction:column} }
     </style>
 </head>
 <body class="dashboard-page">
@@ -40,30 +40,18 @@
             <a class="nav-item" href="{{ url_for('admin.socios') }}"><span class="nav-icon">◈</span>Socios</a>
             <p class="nav-label">ADMINISTRATION</p>
             <a class="nav-item" href="{{ url_for('admin.users') }}"><span class="nav-icon">⚙</span>User Management</a>
-            <a class="nav-item active" href="{{ url_for('admin.bulletin') }}"><span class="nav-icon">✎</span>Manage Bulletin</a>
+            <a class="nav-item active" href="{{ url_for('bulletin.manage') }}"><span class="nav-icon">✎</span>Manage Bulletin</a>
         </nav>
         <div class="sidebar-bottom"><a class="nav-item" href="{{ url_for('auth.logout') }}"><span class="nav-icon">↪</span>Log out</a></div>
     </aside>
 
     <main class="dashboard-main">
-        <header class="topbar">
-            <div>
-                <p class="eyebrow">ADMINISTRATION</p>
-                <h1>Manage Bulletin</h1>
-                <p class="welcome-text">Create official announcements and future events for all users.</p>
-            </div>
-        </header>
+        <header class="topbar"><div><p class="eyebrow">ADMINISTRATION</p><h1>Manage Bulletin</h1><p class="welcome-text">Create official announcements and future events for all users.</p></div></header>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% for category, message in messages %}
-                <div class="flash {{ category }}">{{ message }}</div>
-            {% endfor %}
-        {% endwith %}
+        {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
 
         <section class="form-panel">
-            <div class="panel-header">
-                <div><h2>Create Post</h2><p>Only administrators can publish bulletin posts.</p></div>
-            </div>
+            <div class="panel-header"><div><h2>Create Post</h2><p>Only administrators can publish bulletin posts.</p></div></div>
             <form method="post" action="{{ url_for('bulletin.create') }}">
                 <div class="form-grid">
                     <div class="field full"><label for="title">Title</label><input id="title" name="title" required maxlength="150"></div>
@@ -79,19 +67,10 @@
         <section>
             {% for post in posts %}
             <article class="post-panel">
-                <div class="post-header">
-                    <div>
-                        <h2>{{ post.title }}</h2>
-                        <div class="post-meta">{{ post.post_type.title() }} · Posted {{ post.published_at.strftime('%B %d, %Y at %I:%M %p') }} · {{ post.author.full_name }}</div>
-                        {% if post.event_at %}<div class="post-meta">📅 {{ post.event_at.strftime('%B %d, %Y at %I:%M %p') }}{% if post.location %} · 📍 {{ post.location }}{% endif %}</div>{% endif %}
-                    </div>
-                    <div class="post-actions">
-                        <button class="btn btn-edit" type="button" onclick="toggleEdit({{ post.id }})">Edit</button>
-                        <form method="post" action="{{ url_for('bulletin.delete', post_id=post.id) }}" onsubmit="return confirm('Delete this bulletin post?');"><button class="btn btn-danger" type="submit">Delete</button></form>
-                    </div>
+                <div class="post-header"><div><h2>{{ post.title }}</h2><div class="post-meta">{{ post.post_type.title() }} · Posted {{ post.published_at.strftime('%B %d, %Y at %I:%M %p') }} · {{ post.author.full_name }}</div>{% if post.event_at %}<div class="post-meta">📅 {{ post.event_at.strftime('%B %d, %Y at %I:%M %p') }}{% if post.location %} · 📍 {{ post.location }}{% endif %}</div>{% endif %}</div>
+                    <div class="post-actions"><button class="btn btn-edit" type="button" onclick="toggleEdit({{ post.id }})">Edit</button><form method="post" action="{{ url_for('bulletin.delete', post_id=post.id) }}" onsubmit="return confirm('Delete this bulletin post?');"><button class="btn btn-danger" type="submit">Delete</button></form></div>
                 </div>
                 <div class="post-content">{{ post.content }}</div>
-
                 <form id="edit-{{ post.id }}" class="edit-form hidden" method="post" action="{{ url_for('bulletin.edit', post_id=post.id) }}">
                     <div class="form-grid">
                         <div class="field full"><label>Title</label><input name="title" value="{{ post.title }}" required maxlength="150"></div>
@@ -103,9 +82,7 @@
                     <div class="button-row"><button class="btn btn-primary" type="submit">Save Changes</button><button class="btn btn-edit" type="button" onclick="toggleEdit({{ post.id }})">Cancel</button></div>
                 </form>
             </article>
-            {% else %}
-            <div class="empty-state"><h2>No bulletin posts yet</h2><p>Create the first announcement or future event above.</p></div>
-            {% endfor %}
+            {% else %}<div class="empty-state"><h2>No bulletin posts yet</h2><p>Create the first announcement or future event above.</p></div>{% endfor %}
         </section>
     </main>
 </div>
@@ -118,11 +95,9 @@ function toggleEventFields(mode) {
     }
     const form = document.getElementById(mode);
     const type = form.querySelector('select[name="post_type"]').value;
-    document.querySelectorAll('.event-field-' + mode.replace('edit-', 'edit-')).forEach(el => el.classList.toggle('hidden', type !== 'event'));
+    document.querySelectorAll('.event-field-' + mode).forEach(el => el.classList.toggle('hidden', type !== 'event'));
 }
-function toggleEdit(id) {
-    document.getElementById('edit-' + id).classList.toggle('hidden');
-}
+function toggleEdit(id) { document.getElementById('edit-' + id).classList.toggle('hidden'); }
 </script>
 </body>
 </html>
