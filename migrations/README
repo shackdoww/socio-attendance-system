@@ -1,0 +1,13 @@
+# Database migrations
+
+This directory is managed by Flask-Migrate/Alembic.
+
+Apply migrations with:
+
+    flask --app app db upgrade
+
+Create a new migration after model changes with:
+
+    flask --app app db migrate -m "describe the change"
+
+Review generated migrations before committing them.
