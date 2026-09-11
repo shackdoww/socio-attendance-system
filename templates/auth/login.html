@@ -5,26 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | Socio Attendance System</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ndmu-theme.css') }}">
 </head>
 <body>
     <main class="auth-container">
         <section class="auth-card">
             <h1>Socio Attendance System</h1>
             <p>Sign in to continue.</p>
-
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% for category, message in messages %}
-                    <div class="alert {{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endwith %}
-
+            {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="alert {{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
             <form method="post">
                 <label for="username">Username</label>
                 <input id="username" name="username" type="text" required autocomplete="username">
-
                 <label for="password">Password</label>
                 <input id="password" name="password" type="password" required autocomplete="current-password">
-
                 <button type="submit">Sign In</button>
             </form>
         </section>
