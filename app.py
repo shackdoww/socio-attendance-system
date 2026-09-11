@@ -2,6 +2,7 @@ from flask import Flask, redirect, render_template, url_for
 from flask_login import LoginManager, current_user, login_required
 from dotenv import load_dotenv
 import os
+from sqlalchemy import inspect, text
 
 from extensions import db
 
@@ -69,6 +70,20 @@ def create_app():
     with app.app_context():
         import models
         db.create_all()
+
+        # Keep existing local SQLite databases compatible when new attendance fields are added.
+        if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite"):
+            inspector = inspect(db.engine)
+            columns = {column["name"] for column in inspector.get_columns("attendance_sessions")}
+            if "no_attendance" not in columns:
+                db.session.execute(text(
+                    "ALTER TABLE attendance_sessions ADD COLUMN no_attendance BOOLEAN NOT NULL DEFAULT 0"
+                ))
+            if "no_attendance_reason" not in columns:
+                db.session.execute(text(
+                    "ALTER TABLE attendance_sessions ADD COLUMN no_attendance_reason VARCHAR(255)"
+                ))
+            db.session.commit()
 
         default_socios = [
             "NDMU Rondalla Ensemble",
