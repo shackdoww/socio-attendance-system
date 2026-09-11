@@ -30,7 +30,10 @@ def create_app():
 
     @login_manager.user_loader
     def load_user(user_id):
-        return db.session.get(User, int(user_id))
+        user = db.session.get(User, int(user_id))
+        if user is None or not user.is_active:
+            return None
+        return user
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
