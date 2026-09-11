@@ -15,6 +15,7 @@ class Socio(db.Model):
     users = db.relationship("User", back_populates="socio", lazy=True)
     activities = db.relationship("Activity", back_populates="socio", cascade="all, delete-orphan", lazy=True)
     transactions = db.relationship("Transaction", back_populates="socio", cascade="all, delete-orphan", lazy=True)
+    attendance_sessions = db.relationship("AttendanceSession", back_populates="socio", cascade="all, delete-orphan", lazy=True)
 
 
 class User(UserMixin, db.Model):
@@ -30,6 +31,7 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     socio = db.relationship("Socio", back_populates="users")
     attendance_records = db.relationship("Attendance", back_populates="user", cascade="all, delete-orphan", lazy=True)
+    daily_attendance_records = db.relationship("AttendanceLog", back_populates="user", cascade="all, delete-orphan", lazy=True)
     bulletin_posts = db.relationship("BulletinPost", back_populates="author", lazy=True)
 
     def set_password(self, password):
@@ -64,6 +66,35 @@ class Attendance(db.Model):
     activity = db.relationship("Activity", back_populates="attendance_records")
     user = db.relationship("User", back_populates="attendance_records")
     __table_args__ = (db.UniqueConstraint("activity_id", "user_id", name="uq_activity_user_attendance"),)
+
+
+class AttendanceSession(db.Model):
+    __tablename__ = "attendance_sessions"
+    id = db.Column(db.Integer, primary_key=True)
+    socio_id = db.Column(db.Integer, db.ForeignKey("socios.id"), nullable=False)
+    session_date = db.Column(db.Date, nullable=False)
+    session_type = db.Column(db.String(20), nullable=False, default="regular")
+    created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    socio = db.relationship("Socio", back_populates="attendance_sessions")
+    records = db.relationship("AttendanceLog", back_populates="session", cascade="all, delete-orphan", lazy=True)
+    __table_args__ = (db.UniqueConstraint("socio_id", "session_date", name="uq_socio_attendance_date"),)
+
+
+class AttendanceLog(db.Model):
+    __tablename__ = "attendance_logs"
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.Integer, db.ForeignKey("attendance_sessions.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default="absent")
+    time_in = db.Column(db.Time)
+    time_out = db.Column(db.Time)
+    duration_minutes = db.Column(db.Integer)
+    notes = db.Column(db.String(255))
+    recorded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    session = db.relationship("AttendanceSession", back_populates="records")
+    user = db.relationship("User", back_populates="daily_attendance_records")
+    __table_args__ = (db.UniqueConstraint("session_id", "user_id", name="uq_daily_attendance_user"),)
 
 
 class Transaction(db.Model):
