@@ -34,7 +34,7 @@ def create_app():
     def index():
         if current_user.is_authenticated:
             return redirect(url_for("dashboard"))
-        return render_template("index.html")
+        return redirect(url_for("auth.login"))
 
     @app.route("/dashboard")
     @login_required
