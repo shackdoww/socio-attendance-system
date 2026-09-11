@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management | Socio Attendance System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="admin-page">
+    <div class="admin-layout">
+        <aside class="sidebar">
+            <div class="brand">Socio<span>Attend</span></div>
+            <nav>
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a class="active" href="{{ url_for('admin.users') }}">Users</a>
+                <a href="#">Socios</a>
+                <a href="#">Attendance</a>
+                <a href="#">Activities</a>
+                <a href="#">Finances</a>
+                <a href="#">Reports</a>
+            </nav>
+            <div class="sidebar-bottom">
+                <div class="admin-mini">{{ current_user.full_name }}<small>Administrator</small></div>
+                <a href="{{ url_for('auth.logout') }}">Log out</a>
+            </div>
+        </aside>
+
+        <main class="admin-main">
+            <header class="content-header">
+                <div>
+                    <p class="eyebrow">Administration</p>
+                    <h1>User Management</h1>
+                    <p class="muted">Create accounts, assign roles, and control access.</p>
+                </div>
+                <button class="primary-button" onclick="document.getElementById('create-user').scrollIntoView({behavior: 'smooth'})">+ Add User</button>
+            </header>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-stack">
+                        {% for category, message in messages %}
+                            <div class="flash {{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>All Users</h2>
+                        <p>{{ users|length }} account{% if users|length != 1 %}s{% endif %} shown</p>
+                    </div>
+                    <form class="search-form" method="get">
+                        <input type="search" name="search" value="{{ search }}" placeholder="Search users...">
+                        <button type="submit">Search</button>
+                    </form>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Username</th>
+                                <th>Role</th>
+                                <th>Socio</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td><strong>{{ user.full_name }}</strong><small>{{ user.email }}</small></td>
+                                <td>{{ user.username }}</td>
+                                <td><span class="role-badge">{{ user.role.replace('_', ' ').title() }}</span></td>
+                                <td>{{ user.socio.name if user.socio else '—' }}</td>
+                                <td><span class="status {{ 'active-status' if user.is_active else 'inactive-status' }}">{{ 'Active' if user.is_active else 'Inactive' }}</span></td>
+                                <td>
+                                    {% if user.id != current_user.id %}
+                                    <form method="post" action="{{ url_for('admin.toggle_user', user_id=user.id) }}">
+                                        <button class="table-action" type="submit">{{ 'Deactivate' if user.is_active else 'Activate' }}</button>
+                                    </form>
+                                    {% else %}<span class="muted">Current user</span>{% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="6" class="empty">No users found.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel" id="create-user">
+                <div class="panel-header"><div><h2>Create User</h2><p>Add a new account to the system.</p></div></div>
+                <form class="user-form" method="post" action="{{ url_for('admin.create_user') }}">
+                    <div class="form-grid">
+                        <label>Full name<input name="full_name" required></label>
+                        <label>Username<input name="username" required></label>
+                        <label>Email<input type="email" name="email" required></label>
+                        <label>Password<input type="password" name="password" required minlength="8"></label>
+                        <label>Role
+                            <select name="role">
+                                <option value="member">Member</option>
+                                <option value="president">President</option>
+                                <option value="vice_president">Vice President</option>
+                                <option value="secretary">Secretary</option>
+                                <option value="treasurer">Treasurer</option>
+                                <option value="socio_moderator">Socio Moderator</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </label>
+                        <label>Socio
+                            <select name="socio_id">
+                                <option value="">No socio assigned</option>
+                                {% for socio in socios %}<option value="{{ socio.id }}">{{ socio.name }}</option>{% endfor %}
+                            </select>
+                        </label>
+                    </div>
+                    <button class="primary-button" type="submit">Create Account</button>
+                </form>
+            </section>
+        </main>
+    </div>
+</body>
+</html>
