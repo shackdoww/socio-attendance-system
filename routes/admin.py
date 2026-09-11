@@ -1,4 +1,4 @@
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import or_
 
@@ -36,7 +36,7 @@ def admin_required(view):
     @login_required
     def wrapped(*args, **kwargs):
         if current_user.role != "admin":
-            return "Forbidden", 403
+            abort(403)
         return view(*args, **kwargs)
 
     return wrapped
