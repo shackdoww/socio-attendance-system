@@ -93,9 +93,14 @@ class AttendanceLog(db.Model):
     time_out = db.Column(db.Time)
     duration_minutes = db.Column(db.Integer)
     notes = db.Column(db.String(255))
+    approval_status = db.Column(db.String(20), nullable=False, default="not_required")
+    approved_by = db.Column(db.Integer, db.ForeignKey("users.id"))
+    approved_at = db.Column(db.DateTime)
+    rejection_reason = db.Column(db.String(255))
     recorded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     session = db.relationship("AttendanceSession", back_populates="records")
-    user = db.relationship("User", back_populates="daily_attendance_records")
+    user = db.relationship("User", back_populates="daily_attendance_records", foreign_keys=[user_id])
+    approver = db.relationship("User", foreign_keys=[approved_by])
     __table_args__ = (db.UniqueConstraint("session_id", "user_id", name="uq_daily_attendance_user"),)
 
 
