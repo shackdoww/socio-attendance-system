@@ -11,7 +11,7 @@ os.environ["RATELIMIT_STORAGE_URI"] = "memory://"
 
 from app import create_app
 from extensions import db
-from models import User
+from models import Socio, User
 
 
 def create_test_app():
@@ -188,3 +188,52 @@ def test_admin_pages_require_admin(path):
         with app.test_client() as client:
             authenticate(client, user)
             assert client.get(path).status_code == 403
+
+
+def test_members_directory_is_available_to_members():
+    app = create_test_app()
+    with app.app_context():
+        socio = db.session.execute(db.select(Socio).limit(1)).scalar_one()
+        member = create_user(socio_id=socio.id)
+        create_user(role="treasurer", socio_id=socio.id)
+        with app.test_client() as client:
+            authenticate(client, member)
+            response = client.get("/members")
+            assert response.status_code == 200
+            body = response.get_data(as_text=True)
+            assert "Members" in body
+            assert "Test User" in body
+            assert "Treasurer" in body
+
+
+def test_members_directory_is_limited_to_current_socio():
+    app = create_test_app()
+    with app.app_context():
+        socios = db.session.execute(db.select(Socio).order_by(Socio.id).limit(2)).scalars().all()
+        first_member = create_user(socio_id=socios[0].id)
+        other_member = create_user(socio_id=socios[1].id)
+        with app.test_client() as client:
+            authenticate(client, first_member)
+            response = client.get("/members")
+            assert response.status_code == 200
+            body = response.get_data(as_text=True)
+            assert first_member.email in body
+            assert other_member.email not in body
+
+
+def test_admin_can_filter_members_by_socio_and_assignment():
+    app = create_test_app()
+    with app.app_context():
+        socios = db.session.execute(db.select(Socio).order_by(Socio.id).limit(2)).scalars().all()
+        admin = create_user(role="admin")
+        first_member = create_user(socio_id=socios[0].id)
+        first_treasurer = create_user(role="treasurer", socio_id=socios[0].id)
+        second_member = create_user(socio_id=socios[1].id)
+        with app.test_client() as client:
+            authenticate(client, admin)
+            response = client.get(f"/members?socio={socios[0].id}&role=treasurer")
+            assert response.status_code == 200
+            body = response.get_data(as_text=True)
+            assert first_treasurer.email in body
+            assert first_member.email not in body
+            assert second_member.email not in body
