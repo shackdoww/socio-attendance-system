@@ -1,7 +1,6 @@
 import sys
 from pathlib import Path
 
-# Allow this script to import the application modules from the project root.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from datetime import date, datetime, time, timedelta
@@ -32,32 +31,28 @@ PEOPLE = [
     ("Member 05", "member"),
 ]
 
-ATTENDANCE_STATUSES = ["present", "practicing", "late", "excused", "absent"]
+ATTENDANCE_STATUSES = ["present", "late", "excused", "absent"]
 
 
 def get_or_create_socio(name, description):
     socio = db.session.execute(
         db.select(Socio).where(Socio.name == name)
     ).scalar_one_or_none()
-
     if socio is None:
         socio = Socio(name=name, description=description)
         db.session.add(socio)
         db.session.flush()
     elif not socio.description:
         socio.description = description
-
     return socio
 
 
 def get_or_create_user(socio, index, label, role):
     username = f"demo_{socio.id}_{index}"
     email = f"{username}@example.test"
-
     user = db.session.execute(
         db.select(User).where(User.username == username)
     ).scalar_one_or_none()
-
     if user is None:
         user = User(
             username=username,
@@ -73,7 +68,6 @@ def get_or_create_user(socio, index, label, role):
         user.role = role
         user.socio_id = socio.id
         user.is_active = True
-
     return user
 
 
@@ -113,19 +107,15 @@ def seed_attendance(socio, users):
                 )
             ).scalar_one_or_none()
 
-            status = ATTENDANCE_STATUSES[(index + day_offset) % len(ATTENDANCE_STATUSES)]
-
+            status = "absent" if day_offset == 0 else ATTENDANCE_STATUSES[(index + day_offset) % len(ATTENDANCE_STATUSES)]
             if record is None:
-                record = AttendanceLog(
-                    session_id=session.id,
-                    user_id=user.id,
-                )
+                record = AttendanceLog(session_id=session.id, user_id=user.id)
                 db.session.add(record)
 
             record.status = status
             record.notes = "Demo attendance record" if status != "absent" else "Demo absent record"
 
-            if status in {"present", "practicing", "late"}:
+            if status in {"present", "late"}:
                 start_hour = 16 + (index % 2)
                 start_minute = (index * 7) % 45
                 duration = 60 + ((index + day_offset) % 5) * 30
@@ -139,27 +129,40 @@ def seed_attendance(socio, users):
                 record.time_out = None
                 record.duration_minutes = None
 
+            if status == "absent":
+                record.approval_status = "not_required"
+                record.approved_by = None
+                record.approved_at = None
+            elif day_offset > 0:
+                record.approval_status = "approved"
+                record.approved_by = users[0].id
+                record.approved_at = datetime.utcnow()
+            else:
+                record.approval_status = "not_required"
+                record.approved_by = None
+                record.approved_at = None
+
+            record.rejection_reason = None
+
 
 def main():
     from app import create_app
 
     app = create_app()
-
     with app.app_context():
         created_users = 0
         socios = []
 
         for name, description in SOCIOS:
-            socio = get_or_create_socio(name, description)
-            socios.append(socio)
-
+            socios.append(get_or_create_socio(name, description))
         db.session.commit()
 
         for socio in socios:
             users = []
             for index, (label, role) in enumerate(PEOPLE, start=1):
+                username = f"demo_{socio.id}_{index}"
                 before = db.session.execute(
-                    db.select(User).where(User.username == f"demo_{socio.id}_{index}")
+                    db.select(User).where(User.username == username)
                 ).scalar_one_or_none()
                 user = get_or_create_user(socio, index, label, role)
                 if before is None:
@@ -175,13 +178,12 @@ def main():
         print(f"Socios: {len(socios)}")
         print(f"Demo users created: {created_users}")
         print(f"Demo password: {DEMO_PASSWORD}")
-        print()
-        print("Usernames follow this pattern:")
-        print("  demo_<socio_id>_<person_number>")
+        print("")
+        print("Usernames: demo_<socio_id>_<person_number>")
         print("Example: demo_1_6")
-        print("The first five accounts in each socio are moderator/president/VP/secretary/treasurer.")
+        print("The first five accounts are moderator/president/VP/secretary/treasurer.")
         print("The remaining five are members.")
-        print("Attendance history for the last 14 days was also generated for testing.")
+        print("Historical attendance is approved; today's demo records start unsubmitted.")
 
 
 if __name__ == "__main__":
