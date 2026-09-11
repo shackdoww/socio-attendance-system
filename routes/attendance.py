@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from functools import wraps
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
@@ -93,12 +93,7 @@ def create_session():
     if current_user.role != "admin" and current_user.socio_id != socio.id:
         return "Forbidden", 403
 
-    session = AttendanceSession(
-        socio_id=socio.id,
-        session_date=session_date,
-        session_type="regular",
-        created_by=current_user.id,
-    )
+    session = AttendanceSession(socio_id=socio.id, session_date=session_date, session_type="regular", created_by=current_user.id)
     db.session.add(session)
     db.session.flush()
 
@@ -121,8 +116,7 @@ def manage(session_id):
         return "Forbidden", 403
 
     records = db.session.execute(
-        db.select(AttendanceLog).where(AttendanceLog.session_id == session.id)
-        .join(User).order_by(User.full_name)
+        db.select(AttendanceLog).where(AttendanceLog.session_id == session.id).join(User).order_by(User.full_name)
     ).scalars().all()
     return render_template("attendance/manage.html", session=session, records=records)
 
@@ -159,7 +153,7 @@ def record(session_id, record_id):
         start = datetime.combine(session.session_date, record.time_in)
         end = datetime.combine(session.session_date, record.time_out)
         if end < start:
-            end = datetime.combine(session.session_date, record.time_out).replace(day=session.session_date.day + 1)
+            end += timedelta(days=1)
         record.duration_minutes = max(0, int((end - start).total_seconds() // 60))
     else:
         record.duration_minutes = None
