@@ -25,6 +25,7 @@ def create_app():
     from routes.auth import auth_bp
     from routes.admin import admin_bp
     from routes.bulletin import bulletin_bp
+    from routes.attendance import attendance_bp
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -33,6 +34,7 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(bulletin_bp)
+    app.register_blueprint(attendance_bp)
 
     @app.route("/")
     def index():
