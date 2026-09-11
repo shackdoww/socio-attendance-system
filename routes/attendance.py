@@ -1,11 +1,11 @@
-from datetime import date, datetime, time
+from datetime import date, datetime
 from functools import wraps
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from extensions import db
-from models import AttendanceLog, AttendanceSession, User
+from models import AttendanceLog, AttendanceSession, Socio, User
 
 
 attendance_bp = Blueprint("attendance", __name__)
@@ -24,13 +24,12 @@ def attendance_manager_required(view):
 
 
 def get_session_for_date(session_date, socio_id):
-    session = db.session.execute(
+    return db.session.execute(
         db.select(AttendanceSession).where(
             AttendanceSession.session_date == session_date,
             AttendanceSession.socio_id == socio_id,
         )
     ).scalar_one_or_none()
-    return session
 
 
 @attendance_bp.route("/attendance")
@@ -43,19 +42,21 @@ def index():
         selected_date = date.today()
 
     if selected_date.weekday() == 6:
+        flash("Sunday has no regular attendance session.", "error")
         selected_date = date.today()
 
     if current_user.role == "admin":
         sessions = db.session.execute(
             db.select(AttendanceSession).order_by(AttendanceSession.session_date.desc()).limit(30)
         ).scalars().all()
-        session = sessions[0] if sessions and request.args.get("date") is None else None
+        socios = db.session.execute(db.select(Socio).order_by(Socio.name)).scalars().all()
+        session = None
         if request.args.get("date"):
             session = db.session.execute(
                 db.select(AttendanceSession).where(AttendanceSession.session_date == selected_date)
                 .order_by(AttendanceSession.socio_id)
             ).scalars().first()
-        return render_template("attendance/index.html", session=session, sessions=sessions, selected_date=selected_date)
+        return render_template("attendance/index.html", session=session, sessions=sessions, socios=socios, selected_date=selected_date)
 
     session = get_session_for_date(selected_date, current_user.socio_id) if current_user.socio_id else None
     records = []
@@ -88,8 +89,12 @@ def create_session():
         flash("An attendance session already exists for that date.", "error")
         return redirect(url_for("attendance.index", date=session_date.isoformat()))
 
+    socio = db.get_or_404(Socio, int(socio_id))
+    if current_user.role != "admin" and current_user.socio_id != socio.id:
+        return "Forbidden", 403
+
     session = AttendanceSession(
-        socio_id=int(socio_id),
+        socio_id=socio.id,
         session_date=session_date,
         session_type="regular",
         created_by=current_user.id,
@@ -98,7 +103,7 @@ def create_session():
     db.session.flush()
 
     members = db.session.execute(
-        db.select(User).where(User.socio_id == int(socio_id), User.is_active.is_(True)).order_by(User.full_name)
+        db.select(User).where(User.socio_id == socio.id, User.is_active.is_(True)).order_by(User.full_name)
     ).scalars().all()
     for member in members:
         db.session.add(AttendanceLog(session_id=session.id, user_id=member.id, status="absent"))
