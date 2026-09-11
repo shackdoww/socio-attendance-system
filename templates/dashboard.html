@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard | Socio Attendance System</title>
+    <title>{{ current_user.role.replace('_', ' ').title() }} Dashboard | Socio Attendance System</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="dashboard-page">
@@ -55,6 +55,14 @@
                     Reports
                     <span class="coming-soon">Soon</span>
                 </a>
+
+                {% if current_user.role == 'admin' %}
+                <p class="nav-label">ADMINISTRATION</p>
+                <a class="nav-item" href="{{ url_for('admin.users') }}">
+                    <span class="nav-icon">⚙</span>
+                    User Management
+                </a>
+                {% endif %}
             </nav>
 
             <div class="sidebar-bottom">
@@ -68,7 +76,7 @@
         <main class="dashboard-main">
             <header class="topbar">
                 <div>
-                    <p class="eyebrow">ADMINISTRATION</p>
+                    <p class="eyebrow">{{ current_user.role.replace('_', ' ').upper() }}</p>
                     <h1>Dashboard</h1>
                     <p class="welcome-text">Welcome back, {{ current_user.full_name }}.</p>
                 </div>
@@ -76,7 +84,7 @@
                     <div class="avatar">{{ current_user.full_name[:1].upper() }}</div>
                     <div>
                         <strong>{{ current_user.full_name }}</strong>
-                        <span>Administrator</span>
+                        <span>{{ current_user.role.replace('_', ' ').title() }}</span>
                     </div>
                 </div>
             </header>
@@ -160,7 +168,7 @@
                     <div class="empty-state">
                         <div class="empty-icon">♙</div>
                         <h3>No users yet</h3>
-                        <p>The first administrator account is the only account currently registered.</p>
+                        <p>No user accounts have been added yet.</p>
                     </div>
                     {% endif %}
                 </article>
@@ -169,7 +177,7 @@
                     <div class="panel-header">
                         <div>
                             <h2>System Overview</h2>
-                            <p>Current system status.</p>
+                            <p>Your current account access.</p>
                         </div>
                     </div>
                     <div class="system-status">
@@ -180,9 +188,9 @@
                         </div>
                     </div>
                     <div class="overview-list">
-                        <div><span>Account type</span><strong>Administrator</strong></div>
-                        <div><span>Access level</span><strong>Full system access</strong></div>
-                        <div><span>Database</span><strong>Connected</strong></div>
+                        <div><span>Account type</span><strong>{{ current_user.role.replace('_', ' ').title() }}</strong></div>
+                        <div><span>Access level</span><strong>{% if current_user.role == 'admin' %}Full system access{% elif current_user.role == 'socio_moderator' %}Socio oversight{% elif current_user.role in ['president', 'vice_president', 'secretary', 'treasurer'] %}Officer access{% else %}Member access{% endif %}</strong></div>
+                        <div><span>Socio</span><strong>{{ current_user.socio.name if current_user.socio else 'Not assigned' }}</strong></div>
                     </div>
                 </article>
             </section>
