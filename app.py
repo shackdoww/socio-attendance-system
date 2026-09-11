@@ -37,6 +37,16 @@ def create_app():
     app.register_blueprint(bulletin_bp)
     app.register_blueprint(attendance_bp)
 
+    @app.after_request
+    def inject_shared_sidebar_script(response):
+        if response.mimetype == "text/html":
+            html = response.get_data(as_text=True)
+            marker = "</body>"
+            script = '<script src="/static/js/sidebar.js?v=20260912"></script>'
+            if marker in html and "static/js/sidebar.js" not in html:
+                response.set_data(html.replace(marker, script + marker))
+        return response
+
     @app.route("/")
     def index():
         if current_user.is_authenticated:
