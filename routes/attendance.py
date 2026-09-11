@@ -1,8 +1,10 @@
 from datetime import date, datetime, timedelta
 from functools import wraps
+from zoneinfo import ZoneInfo
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
+from sqlalchemy.exc import IntegrityError
 
 from extensions import db
 from models import AttendanceLog, AttendanceSession, Socio, User
@@ -13,6 +15,15 @@ MANAGER_ROLES = {"admin", "socio_moderator"}
 NON_ATTENDANCE_ROLES = {"admin", "socio_moderator"}
 ATTENDANCE_STATUSES = {"present", "late", "excused", "absent"}
 SELF_STATUSES = {"present"}
+PH_TIMEZONE = ZoneInfo("Asia/Manila")
+
+
+def now_ph():
+    return datetime.now(PH_TIMEZONE)
+
+
+def today_ph():
+    return now_ph().date()
 
 
 def attendance_manager_required(view):
@@ -61,6 +72,7 @@ def ensure_session(session_date, socio_id, created_by):
     session = get_session_for_date(session_date, socio_id)
     if session:
         return session
+
     session = AttendanceSession(
         socio_id=socio_id,
         session_date=session_date,
@@ -68,17 +80,21 @@ def ensure_session(session_date, socio_id, created_by):
         created_by=created_by,
     )
     db.session.add(session)
-    db.session.flush()
-    members = db.session.execute(attendance_member_query(socio_id)).scalars().all()
-    for member in members:
-        db.session.add(AttendanceLog(
-            session_id=session.id,
-            user_id=member.id,
-            status="absent",
-            approval_status="not_required",
-        ))
-    db.session.commit()
-    return session
+    try:
+        db.session.flush()
+        members = db.session.execute(attendance_member_query(socio_id)).scalars().all()
+        for member in members:
+            db.session.add(AttendanceLog(
+                session_id=session.id,
+                user_id=member.id,
+                status="absent",
+                approval_status="not_required",
+            ))
+        db.session.commit()
+        return session
+    except IntegrityError:
+        db.session.rollback()
+        return get_session_for_date(session_date, socio_id)
 
 
 def calculate_duration(session_date, time_in, time_out):
@@ -101,12 +117,13 @@ def get_current_user_record(session):
 @attendance_bp.route("/attendance")
 @login_required
 def index():
-    selected_date_text = request.args.get("date", date.today().isoformat())
+    current_date = today_ph()
+    selected_date_text = request.args.get("date", current_date.isoformat())
     try:
         selected_date = date.fromisoformat(selected_date_text)
     except ValueError:
-        selected_date = date.today()
-    is_today = selected_date == date.today()
+        selected_date = current_date
+    is_today = selected_date == current_date
 
     if current_user.role == "admin":
         socios = db.session.execute(db.select(Socio).order_by(Socio.name)).scalars().all()
@@ -170,7 +187,7 @@ def self_submit(session_id):
     if current_user.role in NON_ATTENDANCE_ROLES or not current_user.socio_id:
         return "Forbidden", 403
     session = db.get_or_404(AttendanceSession, session_id)
-    if session.socio_id != current_user.socio_id or session.session_date != date.today():
+    if session.socio_id != current_user.socio_id or session.session_date != today_ph():
         return "Attendance can only be submitted for your current socio and today's date.", 403
     if session.no_attendance:
         flash("Attendance is disabled for this date.", "error")
@@ -207,7 +224,7 @@ def self_time_in(session_id):
     if current_user.role in NON_ATTENDANCE_ROLES or not current_user.socio_id:
         return "Forbidden", 403
     session = db.get_or_404(AttendanceSession, session_id)
-    if session.socio_id != current_user.socio_id or session.session_date != date.today():
+    if session.socio_id != current_user.socio_id or session.session_date != today_ph():
         return "Attendance can only be logged for today's date.", 403
     if session.no_attendance:
         flash("Attendance is disabled for this date.", "error")
@@ -224,7 +241,7 @@ def self_time_in(session_id):
         flash("You have already timed in.", "error")
         return redirect(url_for("attendance.index"))
 
-    record.time_in = datetime.now().time().replace(second=0, microsecond=0)
+    record.time_in = now_ph().time().replace(second=0, microsecond=0)
     record.status = "present"
     record.approval_status = "pending"
     record.rejection_reason = None
@@ -239,7 +256,7 @@ def self_time_out(session_id):
     if current_user.role in NON_ATTENDANCE_ROLES or not current_user.socio_id:
         return "Forbidden", 403
     session = db.get_or_404(AttendanceSession, session_id)
-    if session.socio_id != current_user.socio_id or session.session_date != date.today():
+    if session.socio_id != current_user.socio_id or session.session_date != today_ph():
         return "Attendance can only be logged for today's date.", 403
     if session.no_attendance:
         flash("Attendance is disabled for this date.", "error")
@@ -256,7 +273,7 @@ def self_time_out(session_id):
         flash("You have already timed out.", "error")
         return redirect(url_for("attendance.index"))
 
-    record.time_out = datetime.now().time().replace(second=0, microsecond=0)
+    record.time_out = now_ph().time().replace(second=0, microsecond=0)
     record.duration_minutes = calculate_duration(session.session_date, record.time_in, record.time_out)
     record.approval_status = "pending"
     record.rejection_reason = None
@@ -310,7 +327,7 @@ def record(session_id, record_id):
 def approve(session_id, record_id):
     session = db.get_or_404(AttendanceSession, session_id)
     record = db.get_or_404(AttendanceLog, record_id)
-    if record.session_id != session.id or (current_user.role != "admin" and current_user.socio_id != session.socio_id):
+    if record.session_id != session.id or record.user.role in NON_ATTENDANCE_ROLES or (current_user.role != "admin" and current_user.socio_id != session.socio_id):
         return "Forbidden", 403
     if record.approval_status != "pending":
         flash("Only pending attendance can be approved.", "error")
@@ -336,7 +353,7 @@ def approve(session_id, record_id):
 def reject(session_id, record_id):
     session = db.get_or_404(AttendanceSession, session_id)
     record = db.get_or_404(AttendanceLog, record_id)
-    if record.session_id != session.id or (current_user.role != "admin" and current_user.socio_id != session.socio_id):
+    if record.session_id != session.id or record.user.role in NON_ATTENDANCE_ROLES or (current_user.role != "admin" and current_user.socio_id != session.socio_id):
         return "Forbidden", 403
     if record.approval_status != "pending":
         flash("Only pending attendance can be rejected.", "error")
