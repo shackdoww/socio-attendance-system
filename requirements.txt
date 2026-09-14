@@ -4,6 +4,7 @@ Flask-Login>=0.6,<1.0
 Flask-WTF>=1.2,<2.0
 Flask-Limiter[redis]>=4.0,<5.0
 Flask-Migrate>=4.0,<5.0
+Gunicorn>=23.0,<24.0
 psycopg[binary]>=3.1,<4.0
 python-dotenv>=1.0,<2.0
 tzdata>=2024.1
